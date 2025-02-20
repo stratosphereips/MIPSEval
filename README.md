@@ -1,4 +1,4 @@
-# Awesome Code Template
+# LLM Evaluator Agent (LLM Attacker)
 
 This repository is a template with basic elements that every repository at Stratosphere should follow.
 
