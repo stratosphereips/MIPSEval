@@ -46,8 +46,8 @@ def main():
     s1, s2, config_path = setup.initial_setup()
 
     # Set values for Lambda function
-    session_id = 'm1s1t02'
-    pair_id = 'TESTING1'
+    session_id = 'm1s1t19'
+    pair_id = 'TESTING3'
 
     prompt = read_config_file(config_path)
 
@@ -83,7 +83,7 @@ def main():
             message_for_evaluator = {"role": 'assistant', "content": msg}
             message_for_lambda = msg
 
-            print(f"R: {message_for_lambda}")
+            print(f"R: {message_for_lambda}\n")
 
             # Write message to working memory
             messages.append(message_for_evaluator)
