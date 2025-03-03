@@ -11,6 +11,7 @@ def read_arguments():
     parser.add_argument('-p', '--provider', required=True, help='Options are: openai and local.')
 
     # Optional arguments
+    parser.add_argument('-j', '--json_history', required=False, default="conversation_history.jsonl", help='Path to conversation history file')
 
     args = parser.parse_args()
 
@@ -18,29 +19,30 @@ def read_arguments():
     config_path = args.config
     env_path = args.env
     provider = args.provider
+    history_path = args.json_history
 
-    return config_path, env_path, provider
+    return config_path, env_path, provider, history_path
 
 
-def set_key(env_path, config_path):
+def set_key(env_path, config_path, history_path):
     env = dotenv_values(env_path)
     openai.api_key = env["OPENAI_API_KEY"]
 
-    return openai.api_key, 0, config_path
+    return openai.api_key, 0, config_path, history_path
 
 
-def connect_local(config_path):
+def connect_local(config_path, history_path):
     api_base = "http://147.32.83.61:11434/v1"
     model = "mistral-nemo:12b-instruct-2407-q5_K_M"
-    return api_base, model, config_path
+    return api_base, model, config_path, history_path
 
 
 def initial_setup():
-    config_path, env_path, provider = read_arguments()
+    config_path, env_path, provider, history_path = read_arguments()
     if provider == "openai":
-        return set_key(env_path, config_path)
+        return set_key(env_path, config_path, history_path)
     else:
-        return connect_local(config_path)
+        return connect_local(config_path, history_path)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,9 @@
+import json
 import openai
 from openai import OpenAI
 import requests
 import setup
+import sys
 import yaml
 
 
@@ -17,6 +19,15 @@ def read_config_file(config_path):
     with open(config_path, 'r', encoding="utf-8") as file:
         identity = yaml.safe_load(file)['personality']
         return identity['prompt']
+
+
+def write_to_jsonl(filepath, messages):
+    with open(filepath, "a+") as f:
+        f.seek(0)
+        conv_id = sum(1 for _ in f)
+
+        entry = {"messages": messages, "conv_id": conv_id}
+        f.write(json.dumps(entry) + "\n")  
 
 
 def call_lambda_api(session_id, pair_id, message_content):
@@ -43,7 +54,7 @@ def call_lambda_api(session_id, pair_id, message_content):
 
 def main():
     # If local model is used s1 and s2 are api_base and model
-    s1, s2, config_path = setup.initial_setup()
+    s1, s2, config_path, history_path = setup.initial_setup()
 
     # Set values for Lambda function
     session_id = 'm1s1t19'
@@ -53,6 +64,8 @@ def main():
 
     personality = prompt 
 
+    five_turns = []
+
     initial_prompt = f"Your personality is: {personality}"
     messages = [{"role": "system", "content": initial_prompt}]
 
@@ -61,16 +74,17 @@ def main():
             base_url=s1
         )
 
-    run = True
+    run = 1
 
-    while run:
+    while run < 7:
 
         # Get LLM response
         try:
             if openai.api_key:
                 res = openai.chat.completions.create(
                     model = "gpt-4o-mini",
-                    messages = messages
+                    messages = messages,
+                    temperature = 0.0
                 )
                 msg = res.choices[0].message.content
             else:
@@ -89,18 +103,27 @@ def main():
             messages.append(message_for_evaluator)
 
             # Call the lambda function
-            lambda_output = call_lambda_api(session_id, pair_id, message_for_lambda)
-            print(f"A: {lambda_output['message']}\n")
-            messages.append({"role": "user", "content": " " + lambda_output['message']})
+            # lambda_output = call_lambda_api(session_id, pair_id, message_for_lambda)
+            # print(f"A: {lambda_output['message']}\n")
+            # messages.append({"role": "user", "content": " " + lambda_output['message']})
 
-            # latest = messages[len(messages) - 1]["content"]
-
+            latest = messages[len(messages) - 1]["content"]
             # Get user input and write it to working memory
-            # user_input = getUserInput(messages)
+            user_input = getUserInput(messages)
+
+            # Create message dictionary and append to conversation
+            one_turn = {"request": message_for_lambda, "response": user_input, "is_req_malicious": True, "is_res_safe": True}
+            five_turns.append(one_turn)
+
+            # with open("", "a+") as f:
+            run += 1
 
         except KeyboardInterrupt:
+            write_to_jsonl(history_path, five_turns)
             print("Bye")
-            run = False
+            sys.exit(1)
+        
+    write_to_jsonl(history_path, five_turns)
 
 if __name__ == "__main__":
     main()
