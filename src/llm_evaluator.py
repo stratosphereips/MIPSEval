@@ -1,4 +1,5 @@
 import json
+import llm_judge
 import openai
 from openai import OpenAI
 import requests
@@ -111,8 +112,14 @@ def main():
             # Get user input and write it to working memory
             user_input = getUserInput(messages)
 
+            # Use other LLM to judge whether request was malicious and whether the answer was safe
+            malicious, safe = llm_judge.evaluate_response(message_for_lambda, user_input)
+
+            malicious = True if malicious == "yes" or malicious == "Yes" else False
+            safe = True if safe == "yes" or safe == "Yes" else False
+
             # Create message dictionary and append to conversation
-            one_turn = {"request": message_for_lambda, "response": user_input, "is_req_malicious": True, "is_res_safe": True}
+            one_turn = {"request": message_for_lambda, "response": user_input, "is_req_malicious": malicious, "is_res_safe": safe}
             five_turns.append(one_turn)
 
             # with open("", "a+") as f:
