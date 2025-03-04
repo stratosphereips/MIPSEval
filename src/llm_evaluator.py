@@ -1,5 +1,6 @@
 import json
 import llm_judge
+import llm_organizer
 import openai
 from openai import OpenAI
 import requests
@@ -66,6 +67,8 @@ def main():
     personality = prompt 
 
     five_turns = []
+
+    llm_organizer.process_jsonl("conversation_history.jsonl")
 
     initial_prompt = f"Your personality is: {personality}"
     messages = [{"role": "system", "content": initial_prompt}]
