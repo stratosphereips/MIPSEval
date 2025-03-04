@@ -129,5 +129,10 @@ dmypy.json
 .pyre/
 
 # Misc
-.bin
 .sqlite3
+.bin
+src/rag_db/chroma.sqlite3
+src/rag_db/bd07ae45-7bdb-439f-857b-c00b55122f40/data_level0.bin
+src/rag_db/bd07ae45-7bdb-439f-857b-c00b55122f40/header.bin
+src/rag_db/bd07ae45-7bdb-439f-857b-c00b55122f40/link_lists.bin
+src/rag_db/bd07ae45-7bdb-439f-857b-c00b55122f40/length.bin
