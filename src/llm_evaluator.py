@@ -68,7 +68,7 @@ def main():
 
     five_turns = []
 
-    llm_organizer.process_jsonl("conversation_history.jsonl")
+    task, pdf_context = llm_organizer.get_context_for_evaluator("conversation_history.jsonl")
 
     initial_prompt = f"Your personality is: {personality}"
     messages = [{"role": "system", "content": initial_prompt}]
@@ -134,6 +134,7 @@ def main():
             sys.exit(1)
         
     write_to_jsonl(history_path, five_turns)
+
 
 if __name__ == "__main__":
     main()
