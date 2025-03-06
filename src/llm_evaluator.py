@@ -26,7 +26,7 @@ def read_config_file(config_path):
 def write_to_jsonl(filepath, messages):
     with open(filepath, "a+") as f:
         f.seek(0)
-        conv_id = sum(1 for _ in f)
+        conv_id = sum(1 for _ in f) + 1
 
         entry = {"messages": messages, "conv_id": conv_id}
         f.write(json.dumps(entry) + "\n")  
