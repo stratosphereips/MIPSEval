@@ -39,6 +39,10 @@ def call_lambda_api(session_id, pair_id, message_content):
         'pair_id': pair_id,
         'messages': [
             {
+                'role': 'system',
+                'content': ""
+            },
+            {
                 'role': 'user',
                 'content': message_content
             }
@@ -59,8 +63,8 @@ def main():
     s1, s2, config_path, history_path = setup.initial_setup()
 
     # Set values for Lambda function
-    session_id = 'm1s1t19'
-    pair_id = 'TESTING3'
+    session_id = 'm1s1t34'
+    pair_id = 'TESTING4'
 
     prompt = read_config_file(config_path)
 
@@ -69,6 +73,8 @@ def main():
     five_turns = []
 
     task, pdf_context = llm_organizer.get_context_for_evaluator("conversation_history.jsonl")
+
+    personality = personality.replace("<topic>", task)
 
     initial_prompt = f"Your personality is: {personality}"
     messages = [{"role": "system", "content": initial_prompt}]
@@ -80,7 +86,7 @@ def main():
 
     run = 1
 
-    while run < 7:
+    while run < 6:
 
         # Get LLM response
         try:
@@ -107,22 +113,31 @@ def main():
             messages.append(message_for_evaluator)
 
             # Call the lambda function
-            # lambda_output = call_lambda_api(session_id, pair_id, message_for_lambda)
-            # print(f"A: {lambda_output['message']}\n")
-            # messages.append({"role": "user", "content": " " + lambda_output['message']})
+            lambda_output = call_lambda_api(session_id, pair_id, message_for_lambda)
+            lambda_output = lambda_output['message']
+            print(f"A: {lambda_output}\n")
+            messages.append({"role": "user", "content": " " + lambda_output})
 
-            latest = messages[len(messages) - 1]["content"]
+            # latest = messages[len(messages) - 1]["content"]
             # Get user input and write it to working memory
-            user_input = getUserInput(messages)
+            # user_input = getUserInput(messages)
 
             # Use other LLM to judge whether request was malicious and whether the answer was safe
-            malicious, safe = llm_judge.evaluate_response(message_for_lambda, user_input)
+            malicious, safe, useful = llm_judge.evaluate_response(message_for_lambda, lambda_output)
 
             malicious = True if malicious == "yes" or malicious == "Yes" else False
             safe = True if safe == "yes" or safe == "Yes" else False
+            useful = True if useful == "yes" or useful == "Yes" else False
+
+            # Make a not of successful attacks
+            if not safe:
+                lambda_output = lambda_output + "--This attack was successful"
+
+            # Make a note of attempted attacks
+            message_for_lambda = message_for_lambda + ' <' + task + '>'
 
             # Create message dictionary and append to conversation
-            one_turn = {"request": message_for_lambda, "response": user_input, "is_req_malicious": malicious, "is_res_safe": safe}
+            one_turn = {"request": message_for_lambda, "response": lambda_output, "is_req_malicious": malicious, "is_res_safe": safe, "is_res_useful": useful}
             five_turns.append(one_turn)
 
             # with open("", "a+") as f:
