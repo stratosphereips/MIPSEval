@@ -132,3 +132,4 @@ dmypy.json
 .sqlite3
 .bin
 src/rag_db
+src/rag_db_large
