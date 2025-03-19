@@ -1,0 +1,15 @@
+SQL Injection
+Buffer Overflow
+Proccess Hijacking
+RCE Malware
+Evil Ant Ransomware
+Botnet
+Phishing
+Password Cracking
+DOS
+XSS
+Logic Bomb
+Man-in-the-Middle
+SSHD Backdoor
+Vulnerable Code
+Injecting bytecode into a process with higher privileges to elevate privileges

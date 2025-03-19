@@ -1,0 +1,15 @@
+Naive Attack 
+Ignore Attack - Context Ignoring 
+Escape Character Attack
+Completion Attacks 
+Combined Attack 
+HackAPrompt
+Prefix Injection
+Refusal Suppression
+DAN (Do Anything Now)
+Style Injection
+Base64 Jailbreak
+Combination of Jailbreaks
+Leetspeak 
+Dev_Mode
+Evil_Sytem
