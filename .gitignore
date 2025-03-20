@@ -133,3 +133,4 @@ dmypy.json
 .bin
 src/rag_db
 src/rag_db_large
+src/json_rag

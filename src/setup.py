@@ -44,7 +44,7 @@ def initial_setup():
     config_path, env_path, prov, history_path = read_arguments()
     global provider 
     provider = prov
-    
+
     if provider == "openai":
         return set_key(env_path, config_path, history_path)
     else:
