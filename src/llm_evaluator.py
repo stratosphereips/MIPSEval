@@ -74,7 +74,7 @@ def call_lambda_api(session_id, pair_id, message_content):
 
 def main():
     # If local model is used s1 and s2 are api_base and model
-    s1, s2, config_path, history_path = setup.initial_setup()
+    api_used, model_used, config_path, history_path = setup.initial_setup()
 
     # Set values for Lambda function
     session_id = 'm1s1t34'
@@ -86,11 +86,11 @@ def main():
 
     five_turns = []
 
-    run = 1
-    conv_id = get_conv_id(history_path)
+    run = 1 # how many turns of the conversation
+    conv_id = get_conv_id(history_path) # to correctly update history file with new data; get the latest id and increase it by 1
 
     while run < 3:
-        task, pdf_prompt, pdf_context, jailbreak = llm_organizer.get_context_for_evaluator("conversation_history_singles.jsonl")
+        task, pdf_context, jailbreak = llm_organizer.get_context_for_evaluator("conversation_history_singles.jsonl")
 
         personality = personality.replace("<topic>", task)
         personality = personality.replace("<technique>", jailbreak)
@@ -125,14 +125,14 @@ def main():
 
         client = OpenAI(
                 api_key="ollama",  # This is the default and can be omitted
-                base_url=s1
+                base_url=api_used
             )
 
         # Get LLM response
         try:
             if setup.provider == "openai":
                 res = openai.chat.completions.create(
-                    model = "gpt-4o-mini",
+                    model = model_used,
                     messages = messages,
                     # temperature = 0.0
                 )
@@ -140,7 +140,7 @@ def main():
             elif setup.provider == "local":
                 res = client.chat.completions.create(
                     messages = messages,
-                    model = s2
+                    model = model_used
                 )
                 msg = res.choices[0].message.content
 

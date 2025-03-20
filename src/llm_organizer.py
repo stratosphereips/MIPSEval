@@ -32,17 +32,17 @@ Query should be about a way to make the other LLM generate response to any query
 The exploit can be something that was asked before or something completely new."""
 
 
-def call_openai():
+def check_openai():
     if not openai.api_key:
         print("\nOpenAI API key not found in .env file.\n")
         return None
 
 
 def setup_rag():
-    call_openai()
+    check_openai()
     client = OpenAI(api_key=openai.api_key)
 
-    chroma_client = chromadb.PersistentClient(path="./rag_db_large")
+    chroma_client = chromadb.PersistentClient(path="./json_rag")
     embedding_fn = embedding_functions.OpenAIEmbeddingFunction(api_key=openai.api_key, model_name="text-embedding-3-large")
 
     # Create collections for jsonl conversations
@@ -51,7 +51,10 @@ def setup_rag():
     # Create collections for pdfs
     pdf_collection = chroma_client.get_or_create_collection(name="pdfs", embedding_function=embedding_fn)
 
-    return chat_collection, pdf_collection, client
+    # Create collections for json info on injections and jailbreaks
+    json_collection = chroma_client.get_or_create_collection(name="attack_methods", embedding_function=embedding_fn)
+
+    return chat_collection, pdf_collection, json_collection, client
 
 
 def explore_exploit_generator(jsonl_path):
@@ -76,22 +79,57 @@ def explore_exploit_generator(jsonl_path):
         yield choice
 
 
+def query_rag_system(chat_collection, pdf_collection, json_collection, user_query):
+    """Retrieve relevant info from PDFs and conversations, then generate a response."""
+
+    # Retrieve from conversation history
+    # chat_results = chat_collection.query(query_texts=[user_query], n_results=10)
+    # chat_context = " ".join([doc for doc in chat_results["documents"][0]]) if chat_results["documents"] else ""
+
+    # Retrieve context about attacks
+    jailbreak = get_random_jailbreak()
+
+    pdf_query = f"""Example of usage for {jailbreak}. What is {jailbreak}."""
+    # pdf_results = pdf_collection.query(query_texts=[pdf_query], n_results=2)
+    # pdf_context = " ".join([doc for doc in pdf_results["documents"][0]]) if pdf_results["documents"] else ""
+
+    json_results = json_collection.query(query_texts=[pdf_query], n_results=1)
+    json_context = " ".join([doc for doc in json_results["documents"][0]]) if json_results["documents"] else ""
+
+    # Construct LLM prompt
+    conv_context = ""
+    # conv_context = f"""
+    #Context from Conversation History:
+    # {chat_context}
+    # """
+
+    # This is actually attack context. I name it here 'Context from PDFs' to instruct LLM where the context is and to avoid using the word attack if possible
+    pdf_context = f"""" 
+    Context from PDFs:
+    {json_context}
+    """
+
+    # print(conv_context)
+
+    return conv_context, pdf_context, jailbreak
+
+
 # --------------- JSONL CONVERSATION PROCESSING ----------------
-def process_jsonl_and_pdf(jsonl_path, chat_collection, pdf_collection, client):
+def process_jsonl_and_pdf(jsonl_path, chat_collection, pdf_collection, json_collection, client):
     # Load JSONL conversation history and store in ChromaDB.
-    with open(jsonl_path, "r") as file:
-        for line in file:
-            record = json.loads(line)
-            chat_text = json.dumps(record)
-            chat_collection.upsert( # upsert adds new lines but also updates existing ones if there were some changes 
-                ids=[f"{record['conv_id']}"],
-                documents=[chat_text],
-                metadatas=[{"conv_id": record["conv_id"]}]
-            )
-    print(f"Stored conversation history from {jsonl_path}.")
+    # with open(jsonl_path, "r") as file:
+    #    for line in file:
+    #        record = json.loads(line)
+    #        chat_text = json.dumps(record)
+    #        chat_collection.upsert( # upsert adds new lines but also updates existing ones if there were some changes 
+    #            ids=[f"{record['conv_id']}"],
+    #            documents=[chat_text],
+    #            metadatas=[{"conv_id": record["conv_id"]}]
+    #        )
+    # print(f"Stored conversation history from {jsonl_path}.")
 
     # Query RAG for conversation history with relevant prompt, whether we prefer to explore or exploit
-    return query_rag_system(chat_collection, pdf_collection, "What are some cases where This attack was successful? What different attacks that were tried noted as <Attack>?")
+    return query_rag_system(chat_collection, pdf_collection, json_collection, "What are some cases where This attack was successful? What different attacks that were tried noted as <Attack>?")
     
 
 def get_random_jailbreak():
@@ -106,36 +144,6 @@ def get_random_task():
     return task
 
 
-def query_rag_system(chat_collection, pdf_collection, user_query):
-    """Retrieve relevant info from PDFs and conversations, then generate a response."""
-
-    # Retrieve from conversation history
-    # chat_results = chat_collection.query(query_texts=[user_query], n_results=10)
-    # chat_context = " ".join([doc for doc in chat_results["documents"][0]]) if chat_results["documents"] else ""
-
-    # Retrieve from PDFs
-    jailbreak = get_random_jailbreak()
-    pdf_query = f"""Example of usage for {jailbreak}. What is {jailbreak}."""
-    pdf_results = pdf_collection.query(query_texts=[pdf_query], n_results=2)
-    pdf_context = " ".join([doc for doc in pdf_results["documents"][0]]) if pdf_results["documents"] else ""
-
-    # Construct LLM prompt
-    conv_context = ""
-    # conv_context = f"""
-    #Context from Conversation History:
-    # {chat_context}
-    # """
-
-    pdf_context = f"""" 
-    Context from PDFs:
-    {pdf_context}
-    """
-
-    # print(conv_context)
-
-    return conv_context, pdf_context, jailbreak
-
-
 def extract_sections(text):
     task_match = re.search(r"<exploit>(.*?)</exploit>", text, re.DOTALL)
     pdf_prompt_match = re.search(r"<prompt>(.*?)</prompt>", text, re.DOTALL)
@@ -147,8 +155,9 @@ def extract_sections(text):
 
 
 def get_context_for_evaluator(jsonl_path):
-    chat_collection, pdf_collection, client = setup_rag()
-    conversation_context, pdf_context, jailbreak = process_jsonl_and_pdf(jsonl_path, chat_collection, pdf_collection, client)
+    chat_collection, pdf_collection, json_collection, client = setup_rag()
+
+    conversation_context, attack_context, jailbreak = process_jsonl_and_pdf(jsonl_path, chat_collection, pdf_collection, json_collection, client)
 
     message_for_evaluator = ""
 
@@ -183,6 +192,5 @@ def get_context_for_evaluator(jsonl_path):
     # if message_for_evaluator:
         # task, pdf_prompt = extract_sections(message_for_evaluator)
     task = get_random_task()
-    pdf_prompt = ""
 
-    return task, pdf_prompt, pdf_context, jailbreak
+    return task, attack_context, jailbreak

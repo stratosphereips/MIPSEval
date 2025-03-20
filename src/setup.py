@@ -30,7 +30,7 @@ def set_key(env_path, config_path, history_path):
     env = dotenv_values(env_path)
     openai.api_key = env["OPENAI_API_KEY"]
 
-    return openai.api_key, 0, config_path, history_path
+    return openai.api_key, "gpt-4o-mini", config_path, history_path
 
 
 def connect_local(env_path, config_path, history_path):
