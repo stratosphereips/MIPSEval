@@ -1,15 +1,107 @@
 SQL Injection
-Buffer Overflow
 Proccess Hijacking
 RCE Malware
 Evil Ant Ransomware
 Botnet
-Phishing
-Password Cracking
-DOS
-XSS
-Logic Bomb
-Man-in-the-Middle
 SSHD Backdoor
 Vulnerable Code
 Injecting bytecode into a process with higher privileges to elevate privileges
+Phishing
+Cross-Site Scripting (XSS)
+Buffer Overflow
+Ransomware
+Malware
+Trojan Horse
+Denial of Service (DoS)
+Distributed Denial of Service (DDoS)
+Man-in-the-Middle (MitM)
+Social Engineering
+Spear Phishing
+Whaling
+Vishing
+Smishing
+Clickjacking
+Cookie Jacking
+Session Hijacking
+Password Cracking
+Brute Force Attack
+Dictionary Attack
+Rainbow Table Attack
+Keylogger
+Rootkit
+Backdoor
+Logic Bomb
+Time Bomb
+Spyware
+Adware
+Scareware
+Drive-by Download
+Watering Hole Attack
+Zero-Day Exploit
+Privilege Escalation
+Lateral Movement
+File Inclusion Vulnerability
+Command Injection
+Path Traversal
+Remote Code Execution (RCE)
+Arbitrary Code Execution
+Cross-Site Request Forgery (CSRF)
+Server-Side Request Forgery (SSRF)
+HTTP Response Splitting
+HTTP Header Injection
+DNS Spoofing
+DNS Tunneling
+TCP SYN Flood
+UDP Flood
+ICMP Flood
+Smurf Attack
+Fraggle Attack
+Ping of Death
+Teardrop Attack
+Land Attack
+IP Spoofing
+MAC Spoofing
+Wi-Fi Eavesdropping
+Wi-Fi Jamming
+Bluetooth Hacking
+NFC Hacking
+RFID Hacking
+Click Fraud
+Cookie Stuffing
+Affiliate Fraud
+SEO Poisoning
+Typosquatting
+Domain Name Hijacking
+DNS Cache Poisoning
+SSL Stripping
+HTTPS Striping
+Certificate Impersonation
+Certificate Chaining
+TLS Downgrade Attack
+BEAST Attack
+CRIME Attack
+POODLE Attack
+Heartbleed
+Shellshock
+Logjam Attack
+FREAK Attack
+DROWN Attack
+Sweet32 Attack
+RC4 Weakness Exploitation
+Triple Handshake Attack
+Client-Side Injection
+Server-Side Injection
+Local File Inclusion (LFI)
+Remote File Inclusion (RFI)
+File Upload Vulnerability
+Directory Traversal
+Unrestricted File Upload
+XML External Entity (XXE) Injection
+XML Injection
+JSON Web Token (JWT) Attack
+OAuth 2.0 Vulnerabilities
+OpenID Connect Vulnerabilities
+SAML Vulnerabilities
+Kerberos Exploitation
+NTLM Exploitation
+LDAP Injection
