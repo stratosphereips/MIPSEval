@@ -42,7 +42,7 @@ def setup_rag():
     check_openai()
     client = OpenAI(api_key=openai.api_key)
 
-    chroma_client = chromadb.PersistentClient(path="./json_rag")
+    chroma_client = chromadb.PersistentClient(path="./rags/json_rag")
     embedding_fn = embedding_functions.OpenAIEmbeddingFunction(api_key=openai.api_key, model_name="text-embedding-3-large")
 
     # Create collections for jsonl conversations

@@ -131,6 +131,4 @@ dmypy.json
 # Misc
 .sqlite3
 .bin
-src/rag_db
-src/rag_db_large
-src/json_rag
+src/rags

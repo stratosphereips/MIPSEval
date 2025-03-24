@@ -12,7 +12,7 @@ def setup_rag():
     env = dotenv_values("../.env")
     openai.api_key = env["OPENAI_API_KEY"]
     
-    chroma_client = chromadb.PersistentClient(path="./rag_db_large")
+    chroma_client = chromadb.PersistentClient(path="./rags/rag_db_large")
     embedding_fn = embedding_functions.OpenAIEmbeddingFunction(api_key=openai.api_key, model_name="text-embedding-3-large")
 
     # Create collections for PDFs

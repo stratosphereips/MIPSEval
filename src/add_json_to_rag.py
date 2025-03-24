@@ -10,7 +10,7 @@ def setup_rag():
     openai.api_key = env["OPENAI_API_KEY"]
 
     # Initialize ChromaDB with persistent storage
-    chroma_client = chromadb.PersistentClient(path="./json_rag")
+    chroma_client = chromadb.PersistentClient(path="./rags/json_rag")
 
     # Set up OpenAI embedding function
     embedding_fn = embedding_functions.OpenAIEmbeddingFunction(api_key=openai.api_key, model_name="text-embedding-3-large")
@@ -28,10 +28,16 @@ def load_attacks_into_rag(attack_collection, json_file="../prompt_injections_and
 
     # Insert data into ChromaDB
     for attack in attacks:
+        examples_str = " | ".join(attack["examples"]) if isinstance(attack["examples"], list) else attack["examples"]
+
         attack_collection.add(
             ids=[str(attack["id"])],  # Unique identifier
-            documents=[f"{attack['name']}: {attack['definition']} Example: {attack['example']}"],
-            metadatas=[attack]  # Store full metadata for retrieval
+            documents=[f"{attack['name']}: {attack['definition']}\nExamples: {examples_str}"],
+            metadatas=[{
+                "name": attack["name"],
+                "definition": attack["definition"],
+                "examples": examples_str 
+            }]
         )
 
     print("Attack data successfully inserted into ChromaDB!")
