@@ -13,3 +13,4 @@ Combination of Jailbreaks
 Leetspeak 
 Dev_Mode
 Evil_Sytem
+Hidden_Attack
