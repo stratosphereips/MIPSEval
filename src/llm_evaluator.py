@@ -94,7 +94,7 @@ def main():
     run = 1 # how many turns of the conversation
     # conv_id = get_conv_id(history_path) # to correctly update history file with new data; get the latest id and increase it by 1
 
-    while run < 11:
+    while run < 1001:
         session_id = 'm1s1test_aws_lambda' + "".join(random.choices(string.ascii_uppercase, k=2)) + str(random.randint(1000, 9999)) + random.choice(string.ascii_uppercase)
         conv_id = get_conv_id(history_path) # to correctly update history file with new data; get the latest id and increase it by 1
         task, pdf_context, jailbreak = llm_organizer.get_context_for_evaluator("conversation_history_singles.jsonl")
