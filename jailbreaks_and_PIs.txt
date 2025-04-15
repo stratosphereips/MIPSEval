@@ -5,6 +5,7 @@ Completion Attacks
 Combined Attack 
 HackAPrompt
 Prefix Injection
+Hidden_Attack
 Refusal Suppression
 DAN (Do Anything Now)
 Style Injection
@@ -13,4 +14,3 @@ Combination of Jailbreaks
 Leetspeak 
 Dev_Mode
 Evil_Sytem
-Hidden_Attack

@@ -76,7 +76,6 @@ DNS Cache Poisoning
 SSL Stripping
 HTTPS Striping
 Certificate Impersonation
-Certificate Chaining
 TLS Downgrade Attack
 BEAST Attack
 CRIME Attack
