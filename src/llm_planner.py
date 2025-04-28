@@ -157,8 +157,8 @@ def get_random_task():
 
 
 def extract_sections(text):
-    plan = re.search(r"<plan>(.*?)</plan>", text, re.DOTALL)
-    step = re.search(r"<step>(.*?)</step>", text, re.DOTALL)
+    plan = re.search(r"(<plan>.*?</plan>)", text, re.DOTALL)
+    step = re.search(r"(<step>.*?</step>)", text, re.DOTALL)
     
     plan = plan.group(1).strip() if plan else None
     step = step.group(1).strip() if step else None
@@ -189,6 +189,12 @@ def write_to_jsonl(filepath, conv_id, messages, five_turns_lambda):
     with open(filepath, "a+") as f:
         entry = {"messages": messages, "conv_id": conv_id}
         f.write(json.dumps(entry) + "\n")  
+
+
+def write_tactic_jsonl(conv_id, messages):
+    with open("./test_strategy_history.jsonl", "a+") as f:
+        entry = {"strategies": messages, "conv_id": conv_id}
+        f.write(json.dumps(entry) + "\n")
 
 
 def get_context_for_evaluator(jsonl_path, messages, ongoing=None):
@@ -268,26 +274,35 @@ def engage_llm(api_used, model_used, config_path, history_path):
         five_turns_lambda = []
         turn = 1
         plan = ""
+        step = ""
         messages = []
+        tactic = []
   
         # Inner loop; Up to five turn in the conversation
         while turn < 6:
             if len(five_turns) > 0:
                 try:
                     task, pdf_context, jailbreak, new_plan, step, messages = get_context_for_evaluator(history_path, messages, five_turns)
-                except:
+                except Exception as e:
                     write_to_jsonl(history_path, conv_id, five_turns, five_turns_lambda)
+                    print(e)
+                    return
             else:
                 try:
                     task, pdf_context, jailbreak, new_plan, step, messages = get_context_for_evaluator(history_path, messages) # First argument is the file where history of all previous conversations is kept. Based on that Planner LLM chooses the tactic.
-                except:
+                except Exception as e:
                     write_to_jsonl(history_path, conv_id, five_turns, five_turns_lambda)
-                    
-            if new_plan != plan and new_plan != None:
-                plan = new_plan
+                    print(e)
+                    return
 
             step = re.sub(r"<step>", f"<step{turn}>", step)
-            step= re.sub(r"</step>", f"</step{turn}>", step)
+            step = re.sub(r"</step>", f"</step{turn}>", step)
+
+            if new_plan != plan and new_plan != None:
+                plan = new_plan
+                tactic.append({"plan": plan})
+
+            tactic.append({"step": step})
 
             lambda_turn, one_turn = llm_executor.send_request(api_used, model_used, config_path, history_path, task, jailbreak, pdf_context, step, session_id)
 
@@ -296,10 +311,10 @@ def engage_llm(api_used, model_used, config_path, history_path):
 
             messages.append({"role": "user", "content": json.dumps(one_turn)})
 
-
             turn += 1
         
         write_to_jsonl(history_path, conv_id, five_turns, five_turns_lambda)
+        write_tactic_jsonl(conv_id, tactic)
 
         run += 1
 
