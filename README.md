@@ -11,19 +11,6 @@ LLM Attacker is a modular framework for simulating and evaluating the behavior o
 - Supports both OpenAI and local LLMs  
 - JSONL logging of interaction history  
 
-## Project Structure
-
-```
-.
-├── llm_attacker.py      # Main entry point
-├── setup.py             # CLI argument parsing, environment loading, model setup
-├── llm_executor.py      # Handles calls to the LLM
-├── llm_planner.py       # Controls multi-turn interaction flow
-├── llm_judge.py         # Evaluates LLM responses (not included here)
-├── configs/             # YAML configuration files
-├── .env                 # Environment variables (e.g. API keys)
-└── *.jsonl              # Output logs of conversations
-```
 
 ## Installation
 
@@ -31,6 +18,7 @@ LLM Attacker is a modular framework for simulating and evaluating the behavior o
 git clone https://github.com/your-username/llm-attacker.git
 cd llm-attacker
 pip install -r requirements.txt
+cd src
 ```
 
 You must also create a `.env` file with your API key (if using OpenAI):
