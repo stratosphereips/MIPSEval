@@ -1,4 +1,3 @@
-Naive Attack 
 Ignore Attack - Context Ignoring 
 Escape Character Attack
 Completion Attacks 
