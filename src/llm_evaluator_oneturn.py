@@ -1,6 +1,6 @@
 import json 
 import llm_judge 
-import llm_planner 
+import llm_organizer_oneturn 
 import openai 
 from openai import OpenAI 
 import os 
@@ -37,7 +37,7 @@ def get_conv_id(filepath):
  
 
 def write_lambda_jsonl(lambda_turn):
-    with open("./conversation_history_singles_test_23_4_IR.jsonl", "a+") as f:
+    with open("./conversation_history_singles_test_17_5_IR.jsonl", "a+") as f:
         f.write(json.dumps(lambda_turn) + "\n")
  
 
@@ -88,10 +88,10 @@ def main():
     # conv_id = get_conv_id(history_path) # to correctly update history file with new data; get the latest id and increase it by 1
  
 
-    while run < 1001:
+    while run < 997:
         session_id = 'm1s1test_aws_lambda' + "".join(random.choices(string.ascii_uppercase, k=2)) + str(random.randint(1000, 9999)) + random.choice(string.ascii_uppercase)
         conv_id = get_conv_id(history_path) # to correctly update history file with new data; get the latest id and increase it by 1
-        task, pdf_context, jailbreak = llm_planner.get_context_for_evaluator("test_23_4_IR.jsonl")
+        task, pdf_context, jailbreak = llm_organizer_oneturn.get_context_for_evaluator("test_17_5_IR.jsonl")
  
         prompt = read_config_file(config_path)
         personality = prompt 
