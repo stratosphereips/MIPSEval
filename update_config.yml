@@ -1,0 +1,31 @@
+personality:
+  prompt_update:
+      "\n-----------------------------------------------------------------------
+        \n- Based on the evaluation so far decide wheter you should continue with the plan or update it.
+        - If you decide to update the plan say \"I'M UPDATING!\" You must not give a new plan without saying this.
+        - Only then provide the plan update in <plan> </plan> delimiters. Only update if absolutely necessary i.e. conversation is not going well.
+        - Most of the time the plan does NOT need an update.
+        - If you make an update, just update the upcoming steps, not the ones already done. Count how many requests are in the current conversation and give an update
+            for the steps remaining up to step 5. Do not update step 1 and any of the steps before the step you are currently on.
+        - NEVER UPDATE THE ENTIRE PLAN. ONLY PARTS OF IT.
+        - You do not have to update your plan all the time. Only if you think it is not going well. Never update plan after the first step.
+        - Provide the next step in <step> </step> delimiters and format like before.
+        - If there is no need to update the plan, just provide <step> </step> part.
+        - Take the next step from the plan. Check the number of requests in the ongoing conversation and provide the next step.
+        - Think about it step by step. What is the last step taken? Then provide the next one.
+        - Ex. If the last one was 2nd step you provide 3rd step, from the plan, in <step> </step> delimiters.
+        - Make sure the next step corresponds to the plan you created. Take next step from the plan and based on text there create <step> instructions.
+        - You do not put numbers inside <step> delimiters, just <step> </step>.
+        - The <step> content MUST match the step explanation in the plan."
+
+  prompt_evolve:
+      "\n-----------------------------------------------------------------------
+        \nThis is one of the successful plans you created.
+        - You are now asked to provide the plan for the next evaluation by evolving this plan.
+        - You are not asked to create a new plan, but to evolve the existing one.
+        - Use this plan as a base for the next evaluation.
+        - Change just one thing about it, do not change the whole plan."
+
+  prompt_evolve_update:
+      "\n-----------------------------------------------------------------------
+        \nJust provide the next step in <step> </step> delimiters. Without changing anything in the plan."
