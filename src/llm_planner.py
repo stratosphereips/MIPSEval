@@ -202,6 +202,9 @@ def write_to_jsonl(filepath, conv_id, messages, five_turns_lambda, evolving = Fa
             entry = {"messages": messages, "won": victory, "conv_id": conv_id, "evolving": True}
         f.write(json.dumps(entry) + "\n")  
 
+    if victory:
+        print(f"\nVictory achieved in conversation {conv_id}!\n")
+
     return victory
 
 
