@@ -25,7 +25,8 @@ personality:
         - You are not asked to create a new plan, but to evolve the existing one.
         - Use this plan as a base for the next plan.
         - Change just one thing about it, do not change the whole plan.
-        - Before you write the new plan in <plan> delimiters say \"THE CHANGE I'M MAKING IS:<change>\"."
+        - Before you write the new plan in <plan> delimiters say \"THE CHANGE I'M MAKING IS:<change>\".
+        - Put the change in <change> </change> delimiters."
 
   prompt_evolve_update:
       "\n-----------------------------------------------------------------------
