@@ -219,10 +219,11 @@ def write_tactic_jsonl(conv_id, messages):
 
 
 def get_context_for_evaluator(jsonl_path, jailbreak=None, task=None, pdf_context=None):
-    chat_collection, pdf_collection, json_collection, client = setup_rag()
-
-    conversation_context, attack_context, jailbreak = process_jsonl_and_pdf(jsonl_path, chat_collection, pdf_collection, json_collection, client, jailbreak, pdf_context)
+    conversation_context = ""
+    attack_context = ""
     if not task:
+        chat_collection, pdf_collection, json_collection, client = setup_rag()
+        conversation_context, attack_context, jailbreak = process_jsonl_and_pdf(jsonl_path, chat_collection, pdf_collection, json_collection, client, jailbreak, pdf_context)
         task = get_random_task()
 
     return conversation_context, task, attack_context, jailbreak
@@ -346,7 +347,7 @@ def prepare_to_engage(history_path, jailbreak=None, task=None, pdf_context=None)
     return session_id, conv_id, five_turns, five_turns_lambda, turn, plan, step, messages, tactic, conversations_history, task, pdf_context, jailbreak
 
 
-def evlolve_tactic(history_path, initial_tactic, victory, api_used, model_used, config_path, s_task, s_pdf_context, s_jailbreak, max_depth = 5): # TODO: Finish the implementation
+def evlolve_tactic(history_path, conversations_history, initial_tactic, victory, api_used, model_used, config_path, s_task, s_pdf_context, s_jailbreak, max_depth = 5): # TODO: Finish the implementation
     to_explore = deque()
     to_explore.append((initial_tactic, 1))  # (tactic, current_depth)
     
@@ -359,7 +360,7 @@ def evlolve_tactic(history_path, initial_tactic, victory, api_used, model_used, 
         changes = []
         
         for _ in range(5):  # Try 5 evolutions from this tactic
-            session_id, conv_id, five_turns, five_turns_lambda, turn, plan, step, messages, empty_tactic, conversations_history, task, pdf_context, jailbreak = prepare_to_engage(history_path, s_jailbreak, s_task, s_pdf_context)
+            session_id, conv_id, five_turns, five_turns_lambda, turn, plan, step, messages, empty_tactic, empty_conversations_history, task, pdf_context, jailbreak = prepare_to_engage(history_path, s_jailbreak, s_task, s_pdf_context)
 
             turn = 1
             current_tactic = tactic.copy()
@@ -368,7 +369,7 @@ def evlolve_tactic(history_path, initial_tactic, victory, api_used, model_used, 
                 try:
                     new_plan, step, messages, change = get_the_next_step(five_turns, history_path, conv_id, five_turns_lambda, conversations_history, messages, turn, task, jailbreak, True, current_tactic, changes)
                 except Exception as e:
-                    write_to_jsonl(history_path, conv_id, five_turns, five_turns_lambda)
+                    write_to_jsonl(history_path, conv_id, five_turns, five_turns_lambda, True)
                     print(e)
                     print("\nError evolving the tactic!")
                     break
@@ -382,7 +383,7 @@ def evlolve_tactic(history_path, initial_tactic, victory, api_used, model_used, 
 
                 print(f"\n{plan_text}")
 
-                lambda_turn, one_turn = llm_executor.send_request(api_used, model_used, config_path, history_path, task, jailbreak, pdf_context, plan_text, step, session_id)
+                lambda_turn, one_turn = llm_executor.send_request(api_used, model_used, config_path, history_path, s_task, s_jailbreak, s_pdf_context, plan_text, step, session_id)
 
                 five_turns_lambda.append(lambda_turn)
                 five_turns.append(one_turn)
@@ -391,7 +392,7 @@ def evlolve_tactic(history_path, initial_tactic, victory, api_used, model_used, 
 
                 turn += 1
 
-            success = write_to_jsonl(history_path, conv_id, five_turns, five_turns_lambda)
+            success = write_to_jsonl(history_path, conv_id, five_turns, five_turns_lambda, True)
             write_tactic_jsonl(conv_id, current_tactic)
 
             if success:
@@ -445,7 +446,7 @@ def engage_llm(api_used, model_used, config_path, history_path):
 
         if victory:
             print("EVOLVING SUCCESSFUL STRATEGY!\n---------------------------------------\n")
-            evlolve_tactic(history_path, tactic, victory, api_used, model_used, config_path, task, pdf_context, jailbreak)
+            evlolve_tactic(history_path, conversations_history, tactic, victory, api_used, model_used, config_path, task, pdf_context, jailbreak)
 
         run += 1
 

@@ -52,6 +52,19 @@ def call_lambda_api(session_id, pair_id, message_content):
         return None
 
 
+def call_openai_api(message_content, llm_used="gpt-4o-mini"):
+    try:
+        response = openai.chat.completions.create(
+            model=llm_used,
+            messages=[{"role": "user", "content": message_content}],
+            temperature=0.0
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        print(f"An error occurred while calling OpenAI API: {e}")
+        return None
+    
+
 def send_request(api_used, model_used, config_path, history_path, task, jailbreak, pdf_context, plan_text, step, session_id):
     # Set values for Lambda function
     # session_id = 'm1s1t34'
@@ -127,10 +140,15 @@ def send_request(api_used, model_used, config_path, history_path, task, jailbrea
         messages.append(message_for_evaluator)
 
         # Call the lambda function
-        lambda_output = call_lambda_api(session_id, pair_id, message_for_lambda)
-        lambda_output = lambda_output['message']
+        #lambda_output = call_lambda_api(session_id, pair_id, message_for_lambda)
+        #lambda_output = lambda_output['message']
+        #print(f"A: {lambda_output}\n")
+        #messages.append({"role": "user", "content": " " + lambda_output})
+
+        # Call OpenAI API to evaluate the response
+        lambda_output = call_openai_api(message_for_lambda)
         print(f"A: {lambda_output}\n")
-        messages.append({"role": "user", "content": " " + lambda_output})
+        messages.append({"role": "user", "content": lambda_output})
 
         # latest = messages[len(messages) - 1]["content"]
         # Get user input and write it to working memory
