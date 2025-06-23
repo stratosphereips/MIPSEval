@@ -185,7 +185,7 @@ def get_conv_id(filepath):
 def write_lambda_jsonl(five_turns_lambda):
     lambda_conversation = {"instruction": "", "conversations": five_turns_lambda}
 
-    with open("./test_multiturn_lambda_13_6.jsonl", "a+") as f:
+    with open("./test_multiturn_lambda_23_6.jsonl", "a+") as f:
         f.write(json.dumps(lambda_conversation) + "\n")
 
 
@@ -213,7 +213,7 @@ def write_to_jsonl(filepath, conv_id, messages, five_turns_lambda, evolving = Fa
 
 
 def write_tactic_jsonl(conv_id, messages):
-    with open("./test_strategy_13_6.jsonl", "a+") as f:
+    with open("./test_strategy_23_6.jsonl", "a+") as f:
         entry = {"strategies": messages, "conv_id": conv_id}
         f.write(json.dumps(entry) + "\n")
 
@@ -250,6 +250,7 @@ def get_step_for_evaluator(conversation_context, jsonl_path, turn, messages, top
 
     if ongoing and not victory:
         messages.append({"role": "system", "content": get_update_prompt(0)})  # 0 for update prompt
+        # print("In Update mode. Ongoing conversation, no victory yet.")
 
     elif not ongoing and victory:
         # print(f"{''.join(map(str, current_tactic))}{get_update_prompt(1)}.\nMake a different change from those you already tried. These are the changes you already made to this plan: {''.join(map(str, changes))}\n")
@@ -430,7 +431,7 @@ def engage_llm(api_used, model_used, config_path, history_path):
             plan_text = get_step_explanation(plan, turn)
             print(f"\n{plan_text}")
 
-            lambda_turn, one_turn = llm_executor.send_request(api_used, model_used, config_path, history_path, task, jailbreak, pdf_context, plan_text, step, session_id)
+            lambda_turn, one_turn = llm_executor.send_request(api_used, model_used, config_path, history_path, task, jailbreak, pdf_context, plan_text, step, session_id, turn)
 
             five_turns_lambda.append(lambda_turn)
             five_turns.append(one_turn)

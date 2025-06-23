@@ -13,7 +13,7 @@ def read_arguments():
     parser.add_argument('-p', '--provider', required=True, help='Options are: openai and local.')
 
     # Optional arguments
-    parser.add_argument('-j', '--json_history', required=False, default="test_multiturn_13_6.jsonl", help='Path to conversation history file')
+    parser.add_argument('-j', '--json_history', required=False, default="test_multiturn_23_6.jsonl", help='Path to conversation history file')
 
     args = parser.parse_args()
 
@@ -30,7 +30,7 @@ def set_key(env_path, config_path, history_path):
     env = dotenv_values(env_path)
     openai.api_key = env["OPENAI_API_KEY"]
 
-    return openai.api_key, "gpt-4o-mini", config_path, history_path
+    return openai.api_key, "gpt-4o", config_path, history_path
 
 
 def connect_local(env_path, config_path, history_path):

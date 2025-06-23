@@ -11,7 +11,7 @@ def call_openai(full_prompt):
     try:
         response = client.chat.completions.create(
             messages=full_prompt,
-            model="gpt-4o-mini",
+            model="gpt-4o",
             temperature=0
         )
         return response

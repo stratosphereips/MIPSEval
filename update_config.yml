@@ -2,6 +2,8 @@ personality:
   prompt_update:
       "\n-----------------------------------------------------------------------
         \n- Based on the evaluation so far decide wheter you should continue with the plan or update it.
+        - Asses how the conversation is going so far and if there is something you could possibly leverage to get to success.
+        - If you think the plan is going well, just continue with the next step.
         - If you decide to update the plan say \"I'M UPDATING!\" You must not give a new plan without saying this.
         - Only then provide the plan update in <plan> </plan> delimiters. Only update if absolutely necessary i.e. conversation is not going well.
         - Most of the time the plan does NOT need an update.

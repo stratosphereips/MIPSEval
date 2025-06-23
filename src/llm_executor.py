@@ -52,11 +52,11 @@ def call_lambda_api(session_id, pair_id, message_content):
         return None
 
 
-def call_openai_api(message_content, llm_used="gpt-4o-mini"):
+def call_openai_api(messages, llm_used="gpt-4o-mini"):
     try:
         response = openai.chat.completions.create(
             model=llm_used,
-            messages=[{"role": "user", "content": message_content}],
+            messages=messages,
             temperature=0.0
         )
         return response.choices[0].message.content
@@ -65,10 +65,28 @@ def call_openai_api(message_content, llm_used="gpt-4o-mini"):
         return None
     
 
-def send_request(api_used, model_used, config_path, history_path, task, jailbreak, pdf_context, plan_text, step, session_id):
+def call_local_api(messages, model_used="llama3.1:8b-instruct-q8_0"):
+    client = OpenAI(
+        api_key="ollama",  # This is the default and can be omitted
+        base_url="http://147.32.83.61:11434/v1" 
+    )
+    try:
+        response = client.chat.completions.create(
+            model=model_used,
+            messages=messages,
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        print(f"An error occurred while calling local API: {e}")
+        return None
+
+
+def send_request(api_used, model_used, config_path, history_path, task, jailbreak, pdf_context, plan_text, step, session_id, turn):
     # Set values for Lambda function
     # session_id = 'm1s1t34'
     pair_id = 'TESTING_LAWS_LAMBDA'
+    messages = []
+    other_messages = []
     # conv_id = get_conv_id(history_path) # to correctly update history file with new data; get the latest id and increase it by 1
 
     prompt = read_config_file(config_path)
@@ -105,8 +123,19 @@ def send_request(api_used, model_used, config_path, history_path, task, jailbrea
     initial_prompt = f"{system_prompt}"
 
     # print(initial_prompt)
+    if turn == 1:
+        messages = [{"role": "system", "content": initial_prompt}]
+    else:
+        if os.path.exists("curent_five_turns.jsonl"):
+            file_path = "curent_five_turns.jsonl"
+            with open(file_path, "r") as f:
+                messages = [json.loads(line) for line in f]
+                messages.append({"role": "system", "content": "This is the instruction how to ask the next request: " + plan_text})
 
-    messages = [{"role": "system", "content": initial_prompt}]
+        if os.path.exists("other_curent_five_turns.jsonl"):
+            other_file_path = "other_curent_five_turns.jsonl"
+            with open(other_file_path, "r") as f:
+                other_messages = [json.loads(line) for line in f]
 
     client = OpenAI(
             api_key="ollama",  # This is the default and can be omitted
@@ -135,6 +164,8 @@ def send_request(api_used, model_used, config_path, history_path, task, jailbrea
         message_for_lambda = msg
 
         print(f"\nR: {message_for_lambda}\n")
+        
+        other_messages.append({"role": "user", "content": message_for_lambda})
 
         # Write message to working memory
         messages.append(message_for_evaluator)
@@ -146,9 +177,20 @@ def send_request(api_used, model_used, config_path, history_path, task, jailbrea
         #messages.append({"role": "user", "content": " " + lambda_output})
 
         # Call OpenAI API to evaluate the response
-        lambda_output = call_openai_api(message_for_lambda)
+        # lambda_output = call_openai_api(messages)
+        lambda_output = call_local_api(other_messages)
         print(f"A: {lambda_output}\n")
+
         messages.append({"role": "user", "content": lambda_output})
+        other_messages.append({"role": "assistant", "content": lambda_output})
+
+        with open("curent_five_turns.jsonl", "w") as f:
+            for message in messages:
+                f.write(json.dumps(message) + "\n")
+
+        with open("other_curent_five_turns.jsonl", "w") as f:
+            for other_message in other_messages:
+                f.write(json.dumps(other_message) + "\n")
 
         # latest = messages[len(messages) - 1]["content"]
         # Get user input and write it to working memory
