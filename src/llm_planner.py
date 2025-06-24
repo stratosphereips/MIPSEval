@@ -185,7 +185,7 @@ def get_conv_id(filepath):
 def write_lambda_jsonl(five_turns_lambda):
     lambda_conversation = {"instruction": "", "conversations": five_turns_lambda}
 
-    with open("./test_multiturn_lambda_23_6.jsonl", "a+") as f:
+    with open("./test_multiturn_lambda_24_6_v2.jsonl", "a+") as f:
         f.write(json.dumps(lambda_conversation) + "\n")
 
 
@@ -212,10 +212,19 @@ def write_to_jsonl(filepath, conv_id, messages, five_turns_lambda, evolving = Fa
     return victory
 
 
-def write_tactic_jsonl(conv_id, messages):
-    with open("./test_strategy_23_6.jsonl", "a+") as f:
+def write_tactic_jsonl(conv_id, messages, victory, task, jailbreak):
+    with open("./test_strategy_24_6_v2.jsonl", "a+") as f:
         entry = {"strategies": messages, "conv_id": conv_id}
         f.write(json.dumps(entry) + "\n")
+
+    if victory:
+        if not os.path.exists("./test_strategy_victory_24_6_v2.jsonl"):
+            with open("./test_strategy_victory_24_6_v2.jsonl", "w") as f:
+                pass
+
+        with open("./test_strategy_victory_24_6_v2.jsonl", "a+") as f:
+            entry = {"strategies": messages, "task": task, "jailbreak": jailbreak, "conv_id": conv_id}
+            f.write(json.dumps(entry) + "\n")
 
 
 def get_context_for_evaluator(jsonl_path, jailbreak=None, task=None, pdf_context=None):
@@ -229,24 +238,26 @@ def get_context_for_evaluator(jsonl_path, jailbreak=None, task=None, pdf_context
     return conversation_context, task, attack_context, jailbreak
 
     
-def get_step_for_evaluator(conversation_context, jsonl_path, turn, messages, topic, jailbreak, victory=False, ongoing=None, current_tactic=None, changes=[]):
+def get_step_for_evaluator(conversation_context, jsonl_path, turn, messages, line, explore, topic, jailbreak, victory=False, ongoing=None, current_tactic=None, changes=[]):
 
     message_for_evaluator = ""
+    final_prompt = ""
 
-    # Add relevant conversation history for context and append appropriate prompt depending whether LLM should explore or exploit
-    final_prompt = f"""
-    History of previous evaluations and tactics:
-    {conversation_context}
+    if explore:
+        # Add relevant conversation history for context and append appropriate prompt depending whether LLM should explore or exploit
+        final_prompt = f"""
+        History of previous evaluations and tactics:
+        {conversation_context}
 
-    This is the topic for this conversation that requestLLM will ask about:
-    {topic}
+        This is the topic for this conversation that requestLLM will ask about:
+        {topic}
 
-    This is the potential prompt injection to be used:
-    {jailbreak}
+        This is the potential prompt injection to be used:
+        {jailbreak}
 
-    System prompt:
-    {get_system_prompt(True) if explore_exploit_generator(jsonl_path, turn) else get_system_prompt(False)} 
-    """
+        System prompt:
+        {get_system_prompt(True)} 
+        """
 
     if ongoing and not victory:
         messages.append({"role": "system", "content": get_update_prompt(0)})  # 0 for update prompt
@@ -267,27 +278,31 @@ def get_step_for_evaluator(conversation_context, jsonl_path, turn, messages, top
             api_key="ollama",  # This is the default and can be omitted
             base_url="http://147.32.83.61:11434/v1"
         )
-
-    try:
-        if openai.api_key:
-            res = openai.chat.completions.create(
-                model = "gpt-4o",
-                messages = messages,
-                temperature = 0.0
-            )
-        
-            msg = res.choices[0].message.content
-
-            messages.append({"role": 'assistant', "content": msg})
+    
+    if explore:
+        try:
+            if openai.api_key:
+                res = openai.chat.completions.create(
+                    model = "gpt-4o",
+                    messages = messages,
+                    temperature = 0.0
+                )
             
-        message_for_evaluator = msg
+                msg = res.choices[0].message.content
 
-        print(f"{message_for_evaluator}\n")
+                messages.append({"role": 'assistant', "content": msg})
+                
+            message_for_evaluator = msg
 
-    except Exception as e:
-        print("There was a little inchident. Please try again!\n")
-        print(e)
-        sys.exit(1)
+            print(f"{message_for_evaluator}\n")
+
+        except Exception as e:
+            print("There was a little inchident. Please try again!\n")
+            print(e)
+            sys.exit(1)
+    else:
+        message_for_evaluator = line['strategies'][0]['plan'].strip()
+        messages.append({"role": 'assistant', "content": message_for_evaluator})
 
     if message_for_evaluator:
         plan, step, change = extract_sections(message_for_evaluator)
@@ -312,10 +327,10 @@ def get_step_explanation(plan, turn):
             return f"Step {turn} not found."
 
 
-def get_the_next_step(five_turns, history_path, conv_id, five_turns_lambda, conversations_history, messages, turn, task, jailbreak, victory = False, current_tactic = None, changes=[]):
+def get_the_next_step(five_turns, history_path, conv_id, five_turns_lambda, explore, conversations_history, messages, turn, task, jailbreak, victory = False, current_tactic = None, changes=[], line=None):
     if len(five_turns) > 0:
         try:
-            new_plan, step, messages, change = get_step_for_evaluator(conversations_history, history_path, turn, messages, task, jailbreak, victory, five_turns, current_tactic, changes) # First argument is the file where history of all previous conversations is kept. Based on that Planner LLM chooses the tactic.
+            new_plan, step, messages, change = get_step_for_evaluator(conversations_history, history_path, turn, messages, line, explore, task, jailbreak, victory, five_turns, current_tactic, changes) # First argument is the file where history of all previous conversations is kept. Based on that Planner LLM chooses the tactic.
             return new_plan, step, messages, change
         except Exception as e:
             write_to_jsonl(history_path, conv_id, five_turns, five_turns_lambda)
@@ -323,7 +338,7 @@ def get_the_next_step(five_turns, history_path, conv_id, five_turns_lambda, conv
             return e
     else:
         try:
-            new_plan, step, messages, change = get_step_for_evaluator(conversations_history, history_path, turn, messages, task, jailbreak, victory, [], current_tactic, changes) # First argument is the file where history of all previous conversations is kept. Based on that Planner LLM chooses the tactic.
+            new_plan, step, messages, change = get_step_for_evaluator(conversations_history, history_path, turn, messages, line, explore, task, jailbreak, victory, [], current_tactic, changes) # First argument is the file where history of all previous conversations is kept. Based on that Planner LLM chooses the tactic.
             return new_plan, step, messages, change
         except Exception as e:
             write_to_jsonl(history_path, conv_id, five_turns, five_turns_lambda)
@@ -351,8 +366,9 @@ def prepare_to_engage(history_path, jailbreak=None, task=None, pdf_context=None)
 def evlolve_tactic(history_path, conversations_history, initial_tactic, victory, api_used, model_used, config_path, s_task, s_pdf_context, s_jailbreak, max_depth = 5): # TODO: Finish the implementation
     to_explore = deque()
     to_explore.append((initial_tactic, 1))  # (tactic, current_depth)
+    count_evolve = 0
     
-    while to_explore:
+    while to_explore and count_evolve < 3:
         tactic, depth = to_explore.popleft()
         
         if depth > max_depth:
@@ -360,7 +376,7 @@ def evlolve_tactic(history_path, conversations_history, initial_tactic, victory,
 
         changes = []
         
-        for _ in range(5):  # Try 5 evolutions from this tactic
+        for _ in range(5):  # Try 8 evolutions from this tactic
             session_id, conv_id, five_turns, five_turns_lambda, turn, plan, step, messages, empty_tactic, empty_conversations_history, task, pdf_context, jailbreak = prepare_to_engage(history_path, s_jailbreak, s_task, s_pdf_context)
 
             turn = 1
@@ -368,7 +384,7 @@ def evlolve_tactic(history_path, conversations_history, initial_tactic, victory,
 
             while turn < 6:
                 try:
-                    new_plan, step, messages, change = get_the_next_step(five_turns, history_path, conv_id, five_turns_lambda, conversations_history, messages, turn, task, jailbreak, True, current_tactic, changes)
+                    new_plan, step, messages, change = get_the_next_step(five_turns, history_path, conv_id, five_turns_lambda, 1, conversations_history, messages, turn, task, jailbreak, True, current_tactic, changes)
                 except Exception as e:
                     write_to_jsonl(history_path, conv_id, five_turns, five_turns_lambda, True)
                     print(e)
@@ -377,14 +393,14 @@ def evlolve_tactic(history_path, conversations_history, initial_tactic, victory,
 
                 if new_plan != plan and new_plan is not None:
                     plan = new_plan
-                    current_tactic.append({"plan": plan})
+                    current_tactic = [{"plan": plan}]  # Update the tactic with the new plan
 
                 plan_text = get_step_explanation(plan, turn)
                 changes.append(change)
 
                 print(f"\n{plan_text}")
 
-                lambda_turn, one_turn = llm_executor.send_request(api_used, model_used, config_path, history_path, s_task, s_jailbreak, s_pdf_context, plan_text, step, session_id)
+                lambda_turn, one_turn = llm_executor.send_request(api_used, model_used, config_path, history_path, s_task, s_jailbreak, s_pdf_context, plan_text, step, session_id, turn)
 
                 five_turns_lambda.append(lambda_turn)
                 five_turns.append(one_turn)
@@ -394,11 +410,12 @@ def evlolve_tactic(history_path, conversations_history, initial_tactic, victory,
                 turn += 1
 
             success = write_to_jsonl(history_path, conv_id, five_turns, five_turns_lambda, True)
-            write_tactic_jsonl(conv_id, current_tactic)
+            write_tactic_jsonl(conv_id, current_tactic, victory, task, jailbreak)
 
             if success:
                 to_explore.append((current_tactic, depth + 1))   
-
+    
+        count_evolve += 1
     return
 
 
@@ -407,13 +424,32 @@ def engage_llm(api_used, model_used, config_path, history_path):
 
     #Outer loop measures the number of conversations
     while run < 2:
+
+        jailbreak = None
+        task = None
+        pdf_context = None
+        random_line = None
+
+        with open(history_path, "r") as f:
+            lines = [json.loads(line) for line in f]
+
+        explore = explore_exploit_generator(history_path, len(lines))
+
+        if not explore:
+            with open("./test_strategy_victory_24_6_v2.jsonl", "r") as f:
+                lines = [json.loads(line) for line in f]
+
+            # Choose a random strategy object from the file
+            random_line = random.choice(lines)
+            jailbreak = random_line['jailbreak']
+            task = random_line['task']
+
         
         session_id, conv_id, five_turns, five_turns_lambda, turn, plan, step, messages, tactic, conversations_history, task, pdf_context, jailbreak = prepare_to_engage(history_path)
-
         # Inner loop; Up to five turn in the conversation
         while turn < 6:
             try:
-                new_plan, step, messages, change = get_the_next_step(five_turns, history_path, conv_id, five_turns_lambda, conversations_history, messages, turn, task, jailbreak, False)
+                new_plan, step, messages, change = get_the_next_step(five_turns, history_path, conv_id, five_turns_lambda, explore, conversations_history, messages, turn, task, jailbreak, False, random_line)
             except Exception as e:
                 write_to_jsonl(history_path, conv_id, five_turns, five_turns_lambda)
                 print(e)
@@ -441,7 +477,7 @@ def engage_llm(api_used, model_used, config_path, history_path):
             turn += 1
         
         victory = write_to_jsonl(history_path, conv_id, five_turns, five_turns_lambda)
-        write_tactic_jsonl(conv_id, tactic)
+        write_tactic_jsonl(conv_id, tactic, victory, task, jailbreak)
 
         #victory = True
 

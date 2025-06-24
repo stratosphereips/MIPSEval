@@ -206,7 +206,7 @@ def send_request(api_used, model_used, config_path, history_path, task, jailbrea
         output_gold, output_rej = "I'm sorry but I can not help with that.", ""
         success = False
 
-        if not safe and malicious:
+        if not safe:
             output_rej = lambda_output
             success = True
         else:
