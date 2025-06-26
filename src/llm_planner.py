@@ -199,7 +199,7 @@ def get_conv_id(filepath):
 def write_lambda_jsonl(five_turns_lambda):
     lambda_conversation = {"instruction": "", "conversations": five_turns_lambda}
 
-    with open("./test_multiturn_lambda_25_6.jsonl", "a+") as f:
+    with open("./test_multiturn_lambda_26_6.jsonl", "a+") as f:
         f.write(json.dumps(lambda_conversation) + "\n")
 
 
@@ -227,12 +227,12 @@ def write_to_jsonl(filepath, conv_id, messages, five_turns_lambda, evolving = Fa
 
 
 def write_tactic_jsonl(conv_id, messages, victory, task, jailbreak, explore, calls, line=None, old_conv_id=None):
-    with open("./test_strategy_25_6.jsonl", "a+") as f:
+    with open("./test_strategy_26_6.jsonl", "a+") as f:
         entry = {"strategies": messages, "conv_id": conv_id}
         f.write(json.dumps(entry) + "\n")
 
     if victory or not explore:
-        path = "./test_strategy_victory_25_6.jsonl"
+        path = "./test_strategy_victory_26_6.jsonl"
         if not os.path.exists(path):
             with open(path, "w") as f:
                 pass
@@ -452,7 +452,7 @@ def evlolve_tactic(history_path, conversations_history, initial_tactic, victory,
                 turn += 1
 
             success = write_to_jsonl(history_path, conv_id, five_turns, five_turns_lambda, True)
-            write_tactic_jsonl(conv_id, current_tactic, victory, task, jailbreak, 1, 0)
+            write_tactic_jsonl(conv_id, current_tactic, success, task, jailbreak, 1,0)
 
             if success:
                 to_explore.append((current_tactic, depth + 1))   
@@ -480,7 +480,7 @@ def engage_llm(api_used, model_used, config_path, history_path):
         explore = explore_exploit_generator(history_path, len(lines))
 
         if not explore:
-            with open("./test_strategy_victory_25_6.jsonl", "r") as f:
+            with open("./test_strategy_victory_26_6.jsonl", "r") as f:
                 lines = [json.loads(line) for line in f]
 
             # Choose a random strategy object from the file
