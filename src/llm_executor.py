@@ -144,21 +144,24 @@ def send_request(api_used, model_used, config_path, history_path, task, jailbrea
     
     lambda_turn, one_turn = "", ""
 
+    msg = "I'm sorry, I can't assist with that."
+    
     # Get LLM response
     try:
-        if setup.provider == "openai":
-            res = openai.chat.completions.create(
-                model = model_used,
-                messages = messages,
-                # temperature = 0.0
-            )
-            msg = res.choices[0].message.content
-        elif setup.provider == "local":
-            res = client.chat.completions.create(
-                messages = messages,
-                model = model_used
-            )
-            msg = res.choices[0].message.content
+        while msg.strip() == "I'm sorry, I can't assist with that." or msg.strip() == "I'm sorry, but I can't assist with that." or msg.strip() == "I'm sorry, but I cannot assist with that.":
+            if setup.provider == "openai":
+                res = openai.chat.completions.create(
+                    model = model_used,
+                    messages = messages,
+                    # temperature = 0.0
+                )
+                msg = res.choices[0].message.content
+            elif setup.provider == "local":
+                res = client.chat.completions.create(
+                    messages = messages,
+                    model = model_used
+                )
+                msg = res.choices[0].message.content
 
         message_for_evaluator = {"role": 'assistant', "content": msg}
         message_for_lambda = msg
@@ -177,8 +180,8 @@ def send_request(api_used, model_used, config_path, history_path, task, jailbrea
         #messages.append({"role": "user", "content": " " + lambda_output})
 
         # Call OpenAI API to evaluate the response
-        # lambda_output = call_openai_api(messages)
-        lambda_output = call_local_api(other_messages)
+        lambda_output = call_openai_api(other_messages)
+        #lambda_output = call_local_api(other_messages)
         print(f"A: {lambda_output}\n")
 
         messages.append({"role": "user", "content": lambda_output})

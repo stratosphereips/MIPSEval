@@ -46,18 +46,23 @@ def get_update_prompt(version):
     return config['prompt_update'] if version == 0 else config['prompt_evolve'] if version == 1 else config['prompt_evolve_update']
 
 
-def setup_rag():
+def setup_rag(explore=1):
     check_openai()
     client = OpenAI(api_key=openai.api_key)
 
     chroma_client = chromadb.PersistentClient(path="./rags/json_rag")
     embedding_fn = embedding_functions.OpenAIEmbeddingFunction(api_key=openai.api_key, model_name="text-embedding-3-large")
 
-    # Create collections for jsonl conversations
-    chat_collection = chroma_client.get_or_create_collection(name="conversations", embedding_function=embedding_fn)
+    chat_collection = None
+    pdf_collection = None
+    json_collection = None
 
-    # Create collections for pdfs
-    pdf_collection = chroma_client.get_or_create_collection(name="pdfs", embedding_function=embedding_fn)
+    if explore:
+        # Create collections for jsonl conversations
+        chat_collection = chroma_client.get_or_create_collection(name="conversations", embedding_function=embedding_fn)
+
+        # Create collections for pdfs
+        pdf_collection = chroma_client.get_or_create_collection(name="pdfs", embedding_function=embedding_fn)
 
     # Create collections for json info on injections and jailbreaks
     json_collection = chroma_client.get_or_create_collection(name="attack_methods", embedding_function=embedding_fn)
@@ -65,12 +70,15 @@ def setup_rag():
     return chat_collection, pdf_collection, json_collection, client
 
 
-def query_rag_system(chat_collection, pdf_collection, json_collection, user_query, jailbreak=None, json_context=None):
+def query_rag_system(chat_collection, pdf_collection, json_collection, user_query, jailbreak=None, json_context=None, explore=1):
     """Retrieve relevant info from PDFs and conversations, then generate a response."""
 
-    # Retrieve from conversation history
-    chat_results = chat_collection.query(query_texts=[user_query], n_results=10)
-    chat_context = " ".join([doc for doc in chat_results["documents"][0]]) if chat_results["documents"] else ""
+    conv_context = ""
+
+    if explore:
+        # Retrieve from conversation history
+        chat_results = chat_collection.query(query_texts=[user_query], n_results=10)
+        chat_context = " ".join([doc for doc in chat_results["documents"][0]]) if chat_results["documents"] else ""
 
     # Retrieve context about attacks
     if not jailbreak:
@@ -84,11 +92,12 @@ def query_rag_system(chat_collection, pdf_collection, json_collection, user_quer
         json_results = json_collection.query(query_texts=[pdf_query], n_results=1)
         json_context = " ".join([doc for doc in json_results["documents"][0]]) if json_results["documents"] else ""
 
-    # Get context from conversation history
-    conv_context = f"""
-    Context from Conversation History:
-    {chat_context}
-    """
+    if explore:
+        # Get context from conversation history
+        conv_context = f"""
+        Context from Conversation History:
+        {chat_context}
+        """
     # This is actually attack context. I name it here 'Context from PDFs' to instruct LLM where the context is and to avoid using the word attack if possible
     attack_context = f"""" 
     Context from PDFs:
@@ -101,22 +110,27 @@ def query_rag_system(chat_collection, pdf_collection, json_collection, user_quer
 
 
 # --------------- JSONL CONVERSATION PROCESSING ----------------
-def process_jsonl_and_pdf(jsonl_path, chat_collection, pdf_collection, json_collection, client, jailbreak=None, pdf_context=None):
+def process_jsonl_and_pdf(jsonl_path, chat_collection, pdf_collection, json_collection, client, jailbreak=None, pdf_context=None, explore=1):
     # Load JSONL conversation history and store in ChromaDB.
-    with open(jsonl_path, "r") as file:
-        for line in file:
-            record = json.loads(line)
-            chat_text = json.dumps(record)
-            chat_collection.upsert( # upsert adds new lines but also updates existing ones if there were some changes 
-                ids=[f"{record['conv_id']}"],
-                documents=[chat_text],
-                metadatas=[{"conv_id": record["conv_id"]}]
-            )
-    print(f"Stored conversation history from {jsonl_path}.")
+    if explore:
+        with open(jsonl_path, "r") as file:
+            for line in file:
+                record = json.loads(line)
+                chat_text = json.dumps(record)
+                chat_collection.upsert( # upsert adds new lines but also updates existing ones if there were some changes 
+                    ids=[f"{record['conv_id']}"],
+                    documents=[chat_text],
+                    metadatas=[{"conv_id": record["conv_id"]}]
+                )
+        print(f"Stored conversation history from {jsonl_path}.")
 
-    # Query RAG for conversation history with relevant prompt, whether we prefer to explore or exploit
-    return query_rag_system(chat_collection, pdf_collection, json_collection, "Find 'victory': True. What are some cases where this attack was successful? Where was 'success': true?", jailbreak, pdf_context)
-    
+    if explore:
+        # Query RAG for conversation history with relevant prompt, whether we prefer to explore or exploit
+        return query_rag_system(chat_collection, pdf_collection, json_collection, "Find 'victory': True. What are some cases where this attack was successful? Where was 'success': true?", jailbreak, pdf_context)
+    else:
+        return query_rag_system(chat_collection, pdf_collection, json_collection, "Find 'victory': True. What are some cases where this attack was successful? Where was 'success': true?", jailbreak, pdf_context, 0)
+
+
 
 def explore_exploit_generator(jsonl_path, step):
     """
@@ -185,7 +199,7 @@ def get_conv_id(filepath):
 def write_lambda_jsonl(five_turns_lambda):
     lambda_conversation = {"instruction": "", "conversations": five_turns_lambda}
 
-    with open("./test_multiturn_lambda_24_6_v2.jsonl", "a+") as f:
+    with open("./test_multiturn_lambda_25_6.jsonl", "a+") as f:
         f.write(json.dumps(lambda_conversation) + "\n")
 
 
@@ -212,21 +226,41 @@ def write_to_jsonl(filepath, conv_id, messages, five_turns_lambda, evolving = Fa
     return victory
 
 
-def write_tactic_jsonl(conv_id, messages, victory, task, jailbreak):
-    with open("./test_strategy_24_6_v2.jsonl", "a+") as f:
+def write_tactic_jsonl(conv_id, messages, victory, task, jailbreak, explore, calls, line=None, old_conv_id=None):
+    with open("./test_strategy_25_6.jsonl", "a+") as f:
         entry = {"strategies": messages, "conv_id": conv_id}
         f.write(json.dumps(entry) + "\n")
 
-    if victory:
-        if not os.path.exists("./test_strategy_victory_24_6_v2.jsonl"):
-            with open("./test_strategy_victory_24_6_v2.jsonl", "w") as f:
+    if victory or not explore:
+        path = "./test_strategy_victory_25_6.jsonl"
+        if not os.path.exists(path):
+            with open(path, "w") as f:
                 pass
+        
+        if explore:
+             with open(path, "a+") as f:
+                entry = {"strategies": messages, "task": task, "jailbreak": jailbreak, "success_rate": 1.0, "calls": 1, "victories": 1, "conv_id": conv_id}
+                f.write(json.dumps(entry) + "\n")
+        else:
+            updated_lines = []
+            found = False
+            with open(path, "r") as f:
+                for line in f:
+                    data = json.loads(line)
+                    if data["conv_id"] == old_conv_id:
+                        data["calls"] = calls + 1
+                        if victory:
+                            data["victories"] += 1
+                        data["success_rate"] = data["victories"] / data["calls"]
+                        found = True
+                    updated_lines.append(json.dumps(data))
 
-        with open("./test_strategy_victory_24_6_v2.jsonl", "a+") as f:
-            entry = {"strategies": messages, "task": task, "jailbreak": jailbreak, "conv_id": conv_id}
-            f.write(json.dumps(entry) + "\n")
+            if found:
+                with open(path, "w") as f:
+                    for line in updated_lines:
+                        f.write(line + "\n")
 
-
+            
 def get_context_for_evaluator(jsonl_path, jailbreak=None, task=None, pdf_context=None):
     conversation_context = ""
     attack_context = ""
@@ -235,6 +269,11 @@ def get_context_for_evaluator(jsonl_path, jailbreak=None, task=None, pdf_context
         conversation_context, attack_context, jailbreak = process_jsonl_and_pdf(jsonl_path, chat_collection, pdf_collection, json_collection, client, jailbreak, pdf_context)
         task = get_random_task()
 
+    elif task and not pdf_context:
+        chat_collection, pdf_collection, json_collection, client = setup_rag(0)
+        conversation_context, attack_context, jailbreak = process_jsonl_and_pdf(jsonl_path, chat_collection, pdf_collection, json_collection, client, jailbreak, pdf_context, 0)
+
+
     return conversation_context, task, attack_context, jailbreak
 
     
@@ -242,6 +281,7 @@ def get_step_for_evaluator(conversation_context, jsonl_path, turn, messages, lin
 
     message_for_evaluator = ""
     final_prompt = ""
+    msg = "I'm sorry, I can't assist with that."
 
     if explore:
         # Add relevant conversation history for context and append appropriate prompt depending whether LLM should explore or exploit
@@ -281,20 +321,21 @@ def get_step_for_evaluator(conversation_context, jsonl_path, turn, messages, lin
     
     if explore:
         try:
-            if openai.api_key:
-                res = openai.chat.completions.create(
-                    model = "gpt-4o",
-                    messages = messages,
-                    temperature = 0.0
-                )
-            
-                msg = res.choices[0].message.content
-
-                messages.append({"role": 'assistant', "content": msg})
+            while msg == "I'm sorry, I can't assist with that.":
+                if openai.api_key:
+                    res = openai.chat.completions.create(
+                        model = "gpt-4o",
+                        messages = messages,
+                        temperature = 0.0
+                    )
                 
+                    msg = res.choices[0].message.content
+
+            messages.append({"role": 'assistant', "content": msg})
+                    
             message_for_evaluator = msg
 
-            print(f"{message_for_evaluator}\n")
+            print(f"\n{message_for_evaluator}\n")
 
         except Exception as e:
             print("There was a little inchident. Please try again!\n")
@@ -302,6 +343,7 @@ def get_step_for_evaluator(conversation_context, jsonl_path, turn, messages, lin
             sys.exit(1)
     else:
         message_for_evaluator = line['strategies'][0]['plan'].strip()
+        print(f"\n-------------\n{message_for_evaluator}\n------------------\n") #TODO: Fix that on later steps the messagae is only the next step; Not too important
         messages.append({"role": 'assistant', "content": message_for_evaluator})
 
     if message_for_evaluator:
@@ -368,7 +410,7 @@ def evlolve_tactic(history_path, conversations_history, initial_tactic, victory,
     to_explore.append((initial_tactic, 1))  # (tactic, current_depth)
     count_evolve = 0
     
-    while to_explore and count_evolve < 3:
+    while to_explore and count_evolve < 2:
         tactic, depth = to_explore.popleft()
         
         if depth > max_depth:
@@ -410,7 +452,7 @@ def evlolve_tactic(history_path, conversations_history, initial_tactic, victory,
                 turn += 1
 
             success = write_to_jsonl(history_path, conv_id, five_turns, five_turns_lambda, True)
-            write_tactic_jsonl(conv_id, current_tactic, victory, task, jailbreak)
+            write_tactic_jsonl(conv_id, current_tactic, victory, task, jailbreak, 1, 0)
 
             if success:
                 to_explore.append((current_tactic, depth + 1))   
@@ -429,27 +471,35 @@ def engage_llm(api_used, model_used, config_path, history_path):
         task = None
         pdf_context = None
         random_line = None
+        old_conv_id = None
+        calls = 0
 
-        with open(history_path, "r") as f:
+        with open(history_path, "a+") as f:
             lines = [json.loads(line) for line in f]
 
         explore = explore_exploit_generator(history_path, len(lines))
 
         if not explore:
-            with open("./test_strategy_victory_24_6_v2.jsonl", "r") as f:
+            with open("./test_strategy_victory_25_6.jsonl", "r") as f:
                 lines = [json.loads(line) for line in f]
 
             # Choose a random strategy object from the file
             random_line = random.choice(lines)
             jailbreak = random_line['jailbreak']
             task = random_line['task']
+            calls = random_line['calls']
+            old_conv_id = random_line['conv_id']
+            print(f"\n{random_line}\n")
 
+            session_id, conv_id, five_turns, five_turns_lambda, turn, plan, step, messages, tactic, conversations_history, task, pdf_context, jailbreak = prepare_to_engage(history_path, jailbreak, task, None)
+
+        else:
+            session_id, conv_id, five_turns, five_turns_lambda, turn, plan, step, messages, tactic, conversations_history, task, pdf_context, jailbreak = prepare_to_engage(history_path)
         
-        session_id, conv_id, five_turns, five_turns_lambda, turn, plan, step, messages, tactic, conversations_history, task, pdf_context, jailbreak = prepare_to_engage(history_path)
         # Inner loop; Up to five turn in the conversation
         while turn < 6:
             try:
-                new_plan, step, messages, change = get_the_next_step(five_turns, history_path, conv_id, five_turns_lambda, explore, conversations_history, messages, turn, task, jailbreak, False, random_line)
+                new_plan, step, messages, change = get_the_next_step(five_turns, history_path, conv_id, five_turns_lambda, explore, conversations_history, messages, turn, task, jailbreak, False, None, [], random_line)
             except Exception as e:
                 write_to_jsonl(history_path, conv_id, five_turns, five_turns_lambda)
                 print(e)
@@ -477,7 +527,7 @@ def engage_llm(api_used, model_used, config_path, history_path):
             turn += 1
         
         victory = write_to_jsonl(history_path, conv_id, five_turns, five_turns_lambda)
-        write_tactic_jsonl(conv_id, tactic, victory, task, jailbreak)
+        write_tactic_jsonl(conv_id, tactic, victory, task, jailbreak, explore, calls, random_line, old_conv_id)
 
         #victory = True
 
