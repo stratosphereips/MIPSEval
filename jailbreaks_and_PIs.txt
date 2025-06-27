@@ -5,10 +5,14 @@ HackAPrompt
 Prefix Injection
 Hidden_Attack
 Refusal Suppression
+GoodBot-BadBot
 DAN (Do Anything Now)
 Style Injection
 Base64 Jailbreak
+Response Priming
 Combination of Jailbreaks
 Leetspeak 
+Opposite Intent
 Dev_Mode
 Evil_Sytem
+Inverted Instruction
