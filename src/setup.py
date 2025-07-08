@@ -13,7 +13,7 @@ def read_arguments():
     parser.add_argument('-p', '--provider', required=True, help='Options are: openai and local.')
 
     # Optional arguments
-    parser.add_argument('-j', '--json_history', required=False, default="test_multiturn_26_6.jsonl", help='Path to conversation history file')
+    parser.add_argument('-j', '--json_history', required=False, default="conversation_history.jsonl", help='Path to conversation history file')
 
     args = parser.parse_args()
 
@@ -35,8 +35,8 @@ def set_key(env_path, config_path, history_path):
 
 def connect_local(env_path, config_path, history_path):
     set_key(env_path, config_path, history_path)
-    api_base = "http://147.32.83.61:11434/v1"
-    model = "mistral-nemo:12b-instruct-2407-q5_K_M"
+    api_base = "http://" # URL for the local model API
+    model = "mistral-nemo:12b-instruct-2407-q5_K_M" # Model to use for local API
     return api_base, model, config_path, history_path
 
 

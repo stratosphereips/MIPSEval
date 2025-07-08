@@ -3,10 +3,12 @@ personality:
       "\n-----------------------------------------------------------------------
         \n- Based on the evaluation so far decide wheter you should continue with the plan or update it.
         - Asses how the conversation is going so far and if there is something you could possibly leverage to get to success.
+        - State you observation whether the conversation is going toward the goal you set, why or why not. 
+        - Then state whether you need to update the plan.
         - If you think the plan is going well, just continue with the next step.
         - If you decide to update the plan say \"I'M UPDATING!\" You must not give a new plan without saying this.
         - Only then provide the plan update in <plan> </plan> delimiters. Only update if absolutely necessary i.e. conversation is not going well.
-        - Most of the time the plan does NOT need an update.
+        - Most of the time the plan does NOT need an update. Think about it carefully and step by step.
         - If you make an update, just update the upcoming steps, not the ones already done. Count how many requests are in the current conversation and give an update
             for the steps remaining up to step 5. Do not update step 1 and any of the steps before the step you are currently on.
         - NEVER UPDATE THE ENTIRE PLAN. ONLY PARTS OF IT.

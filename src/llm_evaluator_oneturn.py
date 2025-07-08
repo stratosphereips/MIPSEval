@@ -50,7 +50,7 @@ def write_to_jsonl(filepath, conv_id, messages, lambda_turn):
  
 
 def call_lambda_api(session_id, pair_id, message_content):
-    url = 'https://01h1q0a8ua.execute-api.us-east-1.amazonaws.com/develop/MyLambdaFunction'
+    url = 'https://'
     payload = {
         'session_id': session_id,
         'pair_id': pair_id,

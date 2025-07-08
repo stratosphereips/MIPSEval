@@ -196,16 +196,7 @@ def get_conv_id(filepath):
         return 1
     
 
-def write_lambda_jsonl(five_turns_lambda):
-    lambda_conversation = {"instruction": "", "conversations": five_turns_lambda}
-
-    with open("./test_multiturn_lambda_26_6.jsonl", "a+") as f:
-        f.write(json.dumps(lambda_conversation) + "\n")
-
-
 def write_to_jsonl(filepath, conv_id, messages, five_turns_lambda, evolving = False):
-    write_lambda_jsonl(five_turns_lambda) # Write to aws jsonl first
-
     victory = False
 
     for m in messages:
@@ -227,12 +218,12 @@ def write_to_jsonl(filepath, conv_id, messages, five_turns_lambda, evolving = Fa
 
 
 def write_tactic_jsonl(conv_id, messages, victory, task, jailbreak, explore, calls, line=None, old_conv_id=None):
-    with open("./test_strategy_26_6.jsonl", "a+") as f:
+    with open("./strategies_history.jsonl", "a+") as f:
         entry = {"strategies": messages, "conv_id": conv_id}
         f.write(json.dumps(entry) + "\n")
 
     if victory or not explore:
-        path = "./test_strategy_victory_26_6.jsonl"
+        path = "./victorious_strategies.jsonl"
         if not os.path.exists(path):
             with open(path, "w") as f:
                 pass
@@ -313,11 +304,6 @@ def get_step_for_evaluator(conversation_context, jsonl_path, turn, messages, lin
     # print(final_prompt)
     elif not messages:
         messages.append({"role": "system", "content": final_prompt})
-
-    client = OpenAI(
-            api_key="ollama",  # This is the default and can be omitted
-            base_url="http://147.32.83.61:11434/v1"
-        )
     
     if explore:
         try:
@@ -335,7 +321,7 @@ def get_step_for_evaluator(conversation_context, jsonl_path, turn, messages, lin
                     
             message_for_evaluator = msg
 
-            print(f"\n{message_for_evaluator}\n")
+            print(f"\n---\n{message_for_evaluator}\n")
 
         except Exception as e:
             print("There was a little inchident. Please try again!\n")
@@ -343,7 +329,7 @@ def get_step_for_evaluator(conversation_context, jsonl_path, turn, messages, lin
             sys.exit(1)
     else:
         message_for_evaluator = line['strategies'][0]['plan'].strip()
-        print(f"\n-------------\n{message_for_evaluator}\n------------------\n") #TODO: Fix that on later steps the messagae is only the next step; Not too important
+        print(f"\n-------------\n{message_for_evaluator}\n------------------\n")
         messages.append({"role": 'assistant', "content": message_for_evaluator})
 
     if message_for_evaluator:
@@ -355,8 +341,6 @@ def get_step_for_evaluator(conversation_context, jsonl_path, turn, messages, lin
 def get_step_explanation(plan, turn):
     match = re.search(r"<plan>(.*?)</plan>", plan, re.DOTALL)
     if match:
-        plan_body = match.group(1).strip()
-
         # Extract all numbered lines
         # Extract the specific step by number
         pattern = rf"{turn}\.\s+(.*?)(?=\n\d+\.|\n?</plan>)"
@@ -440,7 +424,7 @@ def evlolve_tactic(history_path, conversations_history, initial_tactic, victory,
                 plan_text = get_step_explanation(plan, turn)
                 changes.append(change)
 
-                print(f"\n{plan_text}")
+                print(f"{plan_text}\n---\n")
 
                 lambda_turn, one_turn = llm_executor.send_request(api_used, model_used, config_path, history_path, s_task, s_jailbreak, s_pdf_context, plan_text, step, session_id, turn)
 
@@ -480,7 +464,7 @@ def engage_llm(api_used, model_used, config_path, history_path):
         explore = explore_exploit_generator(history_path, len(lines))
 
         if not explore:
-            with open("./test_strategy_victory_26_6.jsonl", "r") as f:
+            with open("./victorious_strategies.jsonl", "r") as f:
                 lines = [json.loads(line) for line in f]
 
             # Choose a random strategy object from the file
@@ -489,7 +473,7 @@ def engage_llm(api_used, model_used, config_path, history_path):
             task = random_line['task']
             calls = random_line['calls']
             old_conv_id = random_line['conv_id']
-            print(f"\n{random_line}\n")
+            # print(f"\n{random_line}\n")
 
             session_id, conv_id, five_turns, five_turns_lambda, turn, plan, step, messages, tactic, conversations_history, task, pdf_context, jailbreak = prepare_to_engage(history_path, jailbreak, task, None)
 
@@ -515,7 +499,7 @@ def engage_llm(api_used, model_used, config_path, history_path):
             # tactic.append({"step": step})
 
             plan_text = get_step_explanation(plan, turn)
-            print(f"\n{plan_text}")
+            print(f"{plan_text}\n---\n")
 
             lambda_turn, one_turn = llm_executor.send_request(api_used, model_used, config_path, history_path, task, jailbreak, pdf_context, plan_text, step, session_id, turn)
 
