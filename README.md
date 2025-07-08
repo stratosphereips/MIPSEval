@@ -1,7 +1,13 @@
 
-# LLM Attacker - AWS
+# MIPSEval
 
-LLM Attacker is a modular framework for simulating and evaluating the behavior of Large Language Models (LLMs) in adversarial or structured multi-turn conversational scenarios. It supports both OpenAI-hosted models and locally hosted models.
+Multi-turn Injection Planning System for LLM Evaluation
+
+MIPSEval is a modular framework for simulating and evaluating the behavior of Large Language Models (LLMs) in adversarial or structured multi-turn conversational scenarios. It supports both OpenAI-hosted models and locally hosted models.
+
+MIPSEval uses LLMs to design a conversation strategy as well as execute it, making it fully automated. The strategy can further be adapted by the LLM, based on the ongoing conversation. The successful strategies are saved so that they can be automatically run multiple times to check if they are common pitfalls for the LLM being tested.
+
+![LLM Attacker Evaluator Diagram](images/LLM%20Attacker_Evaluator%20Diagram%20-%20MIPSEval%20Diagram.jpg)
 
 ## Features
 
@@ -10,7 +16,16 @@ LLM Attacker is a modular framework for simulating and evaluating the behavior o
 - Configurable attack logic via YAML  
 - Supports both OpenAI and local LLMs  
 - JSONL logging of interaction history  
-
+- Fully automated evaluation
+- Strategy and execution are performed by LLMs
+- 3 prompt types: Benign, Probing, and Malicious
+- Strategies are updated based on the ongoing conversation
+- LLM is used to judge success
+- High variety of malicious tasks and jailbreaks/prompt injections
+- Working in explore or exploit mode
+- Evolving of successful strategies
+- Any LLM can be tested with MIPSEval
+- An extensible framework that allows evaluation of other aspects of LLMs
 
 ## Installation
 
@@ -32,14 +47,16 @@ OPENAI_API_KEY=your_openai_api_key
 Run the application using:
 
 ```bash
-python llm_attacker.py -e .env -c path/to/config.yaml -p openai
+python llm_attacker.py -e .env -c path/to/config.yaml -p openai '[-j conversation_history.jsonl]'
 ```
 
 For local model usage:
 
 ```bash
-python llm_attacker.py -e .env -c path/to/config.yaml -p local
+python llm_attacker.py -e .env -c path/to/config.yaml -p local '[-j conversation_history.jsonl]'
 ```
+
+Default OpenAI models used to run MIPSEval are gpt-4o for Planner and gpt-4o-mini for executioner. This can be changed in ```setup.py``` for executioner and ```llm_planner.py``` for planner (in get_step_for_evaluator function). Testing was done with the default models used.
 
 ### Command-Line Arguments
 
@@ -53,7 +70,10 @@ python llm_attacker.py -e .env -c path/to/config.yaml -p local
 
 ## Output
 
-Conversations are logged in JSONL format 
+Conversations are logged in JSONL format. Three files are created:
+- Conversation History
+- Strategies
+- Victorious Strategies
 
 ## License
 
