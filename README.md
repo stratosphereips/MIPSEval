@@ -30,7 +30,7 @@ MIPSEval uses LLMs to design a conversation strategy as well as execute it, maki
 ## Installation
 
 ```bash
-git clone https://github.com/your-username/llm-attacker.git
+git clone https://github.com/stratosphereips/mipseval.git
 cd llm-attacker
 pip install -r requirements.txt
 cd src
