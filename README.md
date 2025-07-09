@@ -41,7 +41,7 @@ Before running the tool, RAG of prompt injections and jailbreaks needs to be set
 python add_json_to_rag.py
 ```
 
-The definitions and examples of jailbreaks and prompt injection that are used for RAG are provided in the `prompt_injections_and_jailbreaks.jsonl` file.
+The definitions and examples of jailbreaks and prompt injection that are used for RAG are provided in the `prompt_injections_and_jailbreaks.json` file.
 
 You must also create a `.env` file with your API key (if using OpenAI):
 
