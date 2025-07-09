@@ -36,6 +36,13 @@ pip install -r requirements.txt
 cd src
 ```
 
+Before running the tool, RAG of prompt injections and jailbreaks needs to be set up. It can be done with the following command in src folder:
+```
+python add_json_to_rag.py
+```
+
+The definitions and examples of jailbreaks and prompt injection that are used for RAG are provided in the `prompt_injections_and_jailbreaks.jsonl` file.
+
 You must also create a `.env` file with your API key (if using OpenAI):
 
 ```
