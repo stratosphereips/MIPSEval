@@ -30,8 +30,8 @@ MIPSEval uses LLMs to design a conversation strategy as well as execute it, maki
 ## Installation
 
 ```bash
-git clone https://github.com/your-username/llm-attacker.git
-cd llm-attacker
+git clone https://github.com/stratosphereips/mipseval.git
+cd mipseval
 pip install -r requirements.txt
 cd src
 ```
@@ -47,13 +47,13 @@ OPENAI_API_KEY=your_openai_api_key
 Run the application using:
 
 ```bash
-python llm_attacker.py -e .env -c path/to/config.yaml -p openai '[-j conversation_history.jsonl]'
+python mipseval.py -e .env -c path/to/config.yaml -p openai '[-j conversation_history.jsonl]'
 ```
 
 For local model usage:
 
 ```bash
-python llm_attacker.py -e .env -c path/to/config.yaml -p local '[-j conversation_history.jsonl]'
+python mipseval.py -e .env -c path/to/config.yaml -p local '[-j conversation_history.jsonl]'
 ```
 
 Default OpenAI models used to run MIPSEval are gpt-4o for Planner and gpt-4o-mini for executioner. This can be changed in ```setup.py``` for executioner and ```llm_planner.py``` for planner (in get_step_for_evaluator function). Testing was done with the default models used.
