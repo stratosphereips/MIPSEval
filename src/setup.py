@@ -11,6 +11,7 @@ def read_arguments():
     parser.add_argument('-e', '--env', required=True, help='Path to environment file (.env)')
     parser.add_argument('-c', '--config', required=True, help='Path to config file (yaml)')
     parser.add_argument('-p', '--provider', required=True, help='Options are: openai and local.')
+    parser.add_argument('-t', '--target', required=True, help='Options are: openai and local.')
 
     # Optional arguments
     parser.add_argument('-j', '--json_history', required=False, default="conversation_history.jsonl", help='Path to conversation history file')
@@ -22,8 +23,9 @@ def read_arguments():
     env_path = args.env
     provider = args.provider
     history_path = args.json_history
+    target = args.target
 
-    return config_path, env_path, provider, history_path
+    return config_path, env_path, provider, history_path, target
 
 
 def set_key(env_path, config_path, history_path):
@@ -41,9 +43,11 @@ def connect_local(env_path, config_path, history_path):
 
 
 def initial_setup():
-    config_path, env_path, prov, history_path = read_arguments()
+    config_path, env_path, prov, history_path, targ = read_arguments()
     global provider 
     provider = prov
+    global target
+    target = targ
 
     if provider == "openai":
         return set_key(env_path, config_path, history_path)

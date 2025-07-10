@@ -148,8 +148,10 @@ def send_request(api_used, model_used, config_path, history_path, task, jailbrea
         messages.append(message_for_evaluator)
 
         # Call OpenAI API to evaluate the response
-        lambda_output = call_openai_api(other_messages)
-        # lambda_output = call_local_api(other_messages)
+        if setup.target == "openai":
+            lambda_output = call_openai_api(other_messages)
+        elif setup.target == "local":
+            lambda_output = call_local_api(other_messages)
         print(f"A: {lambda_output}\n")
 
         messages.append({"role": "user", "content": lambda_output})
