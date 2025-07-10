@@ -85,6 +85,12 @@ Conversations are logged in JSONL format. Three files are created:
 - Strategies
 - Victorious Strategies
 
+
+## Demo
+
+![Demo](images/MIPSEval.gif)
+
+
 ## License
 
 This project is licensed under the GNU GPL License. See the `LICENSE` file for details.
