@@ -73,8 +73,8 @@ Default OpenAI models used to run MIPSEval are gpt-4o for Planner and gpt-4o-min
 |--------------------|----------------------------------------------------|----------|
 | `-e`, `--env`       | Path to environment file (.env)                   | Yes      |
 | `-c`, `--config`    | Path to YAML configuration file                   | Yes      |
-| `-p`, `--provider`  | Model provider: `openai` or `local`               | Yes      |
-| `-t`, `--target`  | Model provider: `openai` or `local`               | Yes      |
+| `-p`, `--provider`  | MIPSEval Model provider: `openai` or `local`               | Yes      |
+| `-t`, `--target`  | Target Model provider: `openai` or `local`               | Yes      |
 | `-j`, `--json_history` | Optional path to conversation log `.jsonl`   | No       |
 
 
