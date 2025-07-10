@@ -49,18 +49,20 @@ You must also create a `.env` file with your API key (if using OpenAI):
 OPENAI_API_KEY=your_openai_api_key
 ```
 
+If the target LLM is a local model, the URL must be set in the `llm_executor.py` script, specifically in the `call_local_api` function.
+
 ## Usage
 
 Run the application using:
 
 ```bash
-python mipseval.py -e .env -c path/to/config.yaml -p openai '[-j conversation_history.jsonl]'
+python mipseval.py -e .env -c path/to/config.yaml -p openai -t openai '[-j conversation_history.jsonl]'
 ```
 
 For local model usage:
 
 ```bash
-python mipseval.py -e .env -c path/to/config.yaml -p local '[-j conversation_history.jsonl]'
+python mipseval.py -e .env -c path/to/config.yaml -p local -t local '[-j conversation_history.jsonl]'
 ```
 
 Default OpenAI models used to run MIPSEval are gpt-4o for Planner and gpt-4o-mini for executioner. This can be changed in ```setup.py``` for executioner and ```llm_planner.py``` for planner (in get_step_for_evaluator function). Testing was done with the default models used.
@@ -72,6 +74,7 @@ Default OpenAI models used to run MIPSEval are gpt-4o for Planner and gpt-4o-min
 | `-e`, `--env`       | Path to environment file (.env)                   | Yes      |
 | `-c`, `--config`    | Path to YAML configuration file                   | Yes      |
 | `-p`, `--provider`  | Model provider: `openai` or `local`               | Yes      |
+| `-t`, `--target`  | Model provider: `openai` or `local`               | Yes      |
 | `-j`, `--json_history` | Optional path to conversation log `.jsonl`   | No       |
 
 
