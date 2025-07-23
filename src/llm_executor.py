@@ -26,7 +26,8 @@ def read_config_file(config_path):
         return identity['prompt']
 
 
-def call_openai_api(messages, llm_used="gpt-4o-mini"):
+def call_openai_api(messages, llm_used):
+    print(f"\nCalling OpenAI API with model: {llm_used}\n")
     try:
         response = openai.chat.completions.create(
             model=llm_used,
@@ -39,10 +40,10 @@ def call_openai_api(messages, llm_used="gpt-4o-mini"):
         return None
     
 
-def call_local_api(messages, model_used="llama3.1:8b-instruct-q8_0"):
+def call_local_api(messages, model_used):
     client = OpenAI(
         api_key="ollama",  # This is the default and can be omitted
-        base_url="http://"  # URL for the local model API to be used as target LLM
+        base_url="http://localhost:11434/v1"  # URL for the local model API to be used as target LLM
     )
     try:
         response = client.chat.completions.create(
@@ -55,7 +56,7 @@ def call_local_api(messages, model_used="llama3.1:8b-instruct-q8_0"):
         return None
 
 
-def send_request(api_used, model_used, config_path, history_path, task, jailbreak, pdf_context, plan_text, step, session_id, turn):
+def send_request(api_used, model_used, config_path, history_path, task, jailbreak, pdf_context, plan_text, step, session_id, turn, target = "gpt-4o-mini"):
     # Set values for Lambda function
     messages = []
     other_messages = []
@@ -149,9 +150,9 @@ def send_request(api_used, model_used, config_path, history_path, task, jailbrea
 
         # Call OpenAI API to evaluate the response
         if setup.target == "openai":
-            lambda_output = call_openai_api(other_messages)
+            lambda_output = call_openai_api(other_messages, target)
         elif setup.target == "local":
-            lambda_output = call_local_api(other_messages)
+            lambda_output = call_local_api(other_messages, target)
         print(f"A: {lambda_output}\n")
 
         messages.append({"role": "user", "content": lambda_output})

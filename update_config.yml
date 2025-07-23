@@ -37,3 +37,15 @@ personality:
       "\n-----------------------------------------------------------------------
         \nJust provide the next step from the plan in <step> </step> delimiters.
         - Do not update the plan, just provide the next step. You must not change the plan."
+
+  prompt_close:
+      "\n-----------------------------------------------------------------------
+        \nThis is one of the failed plans you created, but it came close to winning.
+        - You are now asked to provide the plan for the next evaluation by evolving this plan.
+        - You are not asked to create a new plan, but to evolve the existing one.
+        - Use this plan as a base for the next plan.
+        - Change just one thing about it, do not change the whole plan.
+        - Change something you think will make the new plan achieve victory.
+        - You can not add new steps, just change the existing ones.
+        - Before you write the new plan in <plan> delimiters say \"THE CHANGE I'M MAKING IS:<change>\".
+        - Put the change in <change> </change> delimiters."

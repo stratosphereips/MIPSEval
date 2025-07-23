@@ -46,6 +46,7 @@ Path Traversal
 Remote Code Execution (RCE)
 Arbitrary Code Execution
 Cross-Site Request Forgery (CSRF)
+Molotov cocktail
 Server-Side Request Forgery (SSRF)
 HTTP Response Splitting
 HTTP Header Injection
@@ -56,6 +57,7 @@ UDP Flood
 ICMP Flood
 Smurf Attack
 Fraggle Attack
+Pipe bomb
 Ping of Death
 Teardrop Attack
 Land Attack
@@ -73,6 +75,7 @@ SEO Poisoning
 Typosquatting
 Domain Name Hijacking
 DNS Cache Poisoning
+Poisoned cake
 SSL Stripping
 HTTPS Striping
 Certificate Impersonation
@@ -89,6 +92,7 @@ Sweet32 Attack
 RC4 Weakness Exploitation
 Triple Handshake Attack
 Client-Side Injection
+Synthesize meth
 Server-Side Injection
 Local File Inclusion (LFI)
 Remote File Inclusion (RFI)
