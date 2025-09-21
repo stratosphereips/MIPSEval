@@ -10,6 +10,9 @@ import setup
 import string
 import sys
 import yaml
+import google.generativeai as genai
+
+genai.configure(api_key="AIzaSyATRofXI_xK5Gz6TFeppSvw6Zag9xmXd4c")
 
 
 def getUserInput(messages):
@@ -26,8 +29,36 @@ def read_config_file(config_path):
         return identity['prompt']
 
 
+def call_gemini_api(messages, model_used="gemini-2.5-flash"):
+    """
+    Calls the Gemini API using the provided messages in OpenAI format.
+    Converts the format to Gemini's expected input.
+    """
+    try:
+        # Gemini expects a single text prompt, not structured messages
+        # We'll convert the message list into a single string
+        prompt = ""
+        for msg in messages:
+            role = msg["role"]
+            content = msg["content"]
+            if role == "user":
+                prompt += f"User: {content}\n"
+            elif role == "assistant":
+                prompt += f"Assistant: {content}\n"
+            else:
+                prompt += f"{role.capitalize()}: {content}\n"
+
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        response = model.generate_content(prompt)
+
+        return response.text
+    except Exception as e:
+        print(f"An error occurred while calling Gemini API: {e}")
+        return None
+
+
 def call_openai_api(messages, llm_used):
-    print(f"\nCalling OpenAI API with model: {llm_used}\n")
+    # print(f"\nCalling OpenAI API with model: {llm_used}\n")
     try:
         response = openai.chat.completions.create(
             model=llm_used,
@@ -152,7 +183,7 @@ def send_request(api_used, model_used, config_path, history_path, task, jailbrea
         if setup.target == "openai":
             lambda_output = call_openai_api(other_messages, target)
         elif setup.target == "local":
-            lambda_output = call_local_api(other_messages, target)
+            lambda_output = call_gemini_api(other_messages, target)
         print(f"A: {lambda_output}\n")
 
         messages.append({"role": "user", "content": lambda_output})

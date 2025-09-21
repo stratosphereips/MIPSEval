@@ -1,4 +1,3 @@
-SQL Injection
 Proccess Hijacking
 RCE Malware
 Evil Ant Ransomware
