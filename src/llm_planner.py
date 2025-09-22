@@ -261,13 +261,17 @@ def write_tactic_jsonl(conv_id, messages, victory, task, jailbreak, explore, cal
                         f.write(json.dumps(entry) + "\n")
 
             
-def get_context_for_evaluator(jsonl_path, jailbreak=None, task=None, pdf_context=None):
+def get_context_for_evaluator(jsonl_path, jailbreak=None, task=None, pdf_context=None, task_mode='0'):
     conversation_context = ""
     attack_context = ""
     if not task:
         chat_collection, pdf_collection, json_collection, client = setup_rag()
         conversation_context, attack_context, jailbreak = process_jsonl_and_pdf(jsonl_path, chat_collection, pdf_collection, json_collection, client, jailbreak, pdf_context)
-        task = setup.get_set_task()
+        
+        if task_mode == '1':
+            task = setup.get_set_task()
+        else:
+            task = get_random_task()
 
     elif task and not pdf_context:
         chat_collection, pdf_collection, json_collection, client = setup_rag(0)
@@ -319,7 +323,7 @@ def get_step_for_evaluator(conversation_context, jsonl_path, turn, messages, lin
     
     if explore:
         try:
-            while msg == "I'm sorry, I can't assist with that.":
+            while msg == "I'm sorry, I can't assist with that." or msg == "I'm sorry, I can't assist with that request.":
                 if openai.api_key:
                     res = openai.chat.completions.create(
                         model = "gpt-4o",
@@ -384,7 +388,7 @@ def get_the_next_step(five_turns, history_path, conv_id, five_turns_lambda, expl
             return e
 
 
-def prepare_to_engage(history_path, jailbreak=None, task=None, pdf_context=None):
+def prepare_to_engage(history_path, jailbreak=None, task=None, pdf_context=None, task_mode='0'):
     session_id = 'm1s1test_aws_lambda' + "".join(random.choices(string.ascii_uppercase, k=2)) + str(random.randint(1000, 9999)) + random.choice(string.ascii_uppercase)
     conv_id = get_conv_id(history_path) # to correctly update history file with new data; get the latest id and increase it by 1
 
@@ -396,7 +400,7 @@ def prepare_to_engage(history_path, jailbreak=None, task=None, pdf_context=None)
     messages = []
     tactic = []
 
-    conversations_history, task, pdf_context, jailbreak = get_context_for_evaluator(history_path, jailbreak, task, pdf_context)
+    conversations_history, task, pdf_context, jailbreak = get_context_for_evaluator(history_path, jailbreak, task, pdf_context, task_mode)
 
     return session_id, conv_id, five_turns, five_turns_lambda, turn, plan, step, messages, tactic, conversations_history, task, pdf_context, jailbreak
 
@@ -461,6 +465,9 @@ def engage_llm(api_used, model_used, config_path, history_path):
     global run
     run = 0  # (task index - 1) * 18 + (jailbreak index) 
 
+    task_mode = setup.get_set_task_mode()
+    evol_mode = setup.get_set_evolution_mode()
+
     #Outer loop measures the number of conversations
     while run < 5:
 
@@ -470,7 +477,7 @@ def engage_llm(api_used, model_used, config_path, history_path):
         random_line = None
         old_conv_id = None
         calls = 0
-
+        
         with open(history_path, "a+") as f:
             lines = [json.loads(line) for line in f]
 
@@ -491,7 +498,7 @@ def engage_llm(api_used, model_used, config_path, history_path):
             session_id, conv_id, five_turns, five_turns_lambda, turn, plan, step, messages, tactic, conversations_history, task, pdf_context, jailbreak = prepare_to_engage(history_path, jailbreak, task, None)
 
         else:
-            session_id, conv_id, five_turns, five_turns_lambda, turn, plan, step, messages, tactic, conversations_history, task, pdf_context, jailbreak = prepare_to_engage(history_path)
+            session_id, conv_id, five_turns, five_turns_lambda, turn, plan, step, messages, tactic, conversations_history, task, pdf_context, jailbreak = prepare_to_engage(history_path, None, None, None, task_mode)
         
         # Inner loop; Up to five turn in the conversation
         while turn < 6:
@@ -528,11 +535,11 @@ def engage_llm(api_used, model_used, config_path, history_path):
 
         victory = True
 
-        if victory and setup.get_set_evolution_mode() == '1':
+        if victory and evol_mode == '1':
             print("EVOLVING SUCCESSFUL STRATEGY!\n---------------------------------------\n")
             evlolve_tactic(history_path, conversations_history, tactic, victory, api_used, model_used, config_path, task, pdf_context, jailbreak)
 
-        elif close and setup.get_set_evolution_mode() == '1':
+        elif close and evol_mode == '1':
             print("EVOLVING CLOSE STRATEGY!\n---------------------------------------\n")
             evlolve_tactic(history_path, conversations_history, tactic, victory, api_used, model_used, config_path, task, pdf_context, jailbreak, close)
 

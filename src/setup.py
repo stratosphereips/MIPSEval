@@ -51,6 +51,12 @@ def get_set_evolution_mode():
     mode = input("Type 1 to enable evolution of tactics or 0 to disable it: ")
     return mode
 
+
+def get_set_task_mode():
+    mode = input("Type 1 for manual input of tasks or 0 for automatic choice of tasks: ")
+    return mode
+
+
 def initial_setup():
     config_path, env_path, prov, history_path, targ = read_arguments()
     global provider 
