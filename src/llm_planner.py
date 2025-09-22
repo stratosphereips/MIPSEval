@@ -267,7 +267,7 @@ def get_context_for_evaluator(jsonl_path, jailbreak=None, task=None, pdf_context
     if not task:
         chat_collection, pdf_collection, json_collection, client = setup_rag()
         conversation_context, attack_context, jailbreak = process_jsonl_and_pdf(jsonl_path, chat_collection, pdf_collection, json_collection, client, jailbreak, pdf_context)
-        task = get_random_task()
+        task = setup.get_set_task()
 
     elif task and not pdf_context:
         chat_collection, pdf_collection, json_collection, client = setup_rag(0)
@@ -526,15 +526,15 @@ def engage_llm(api_used, model_used, config_path, history_path):
         victory, close = write_to_jsonl(history_path, conv_id, five_turns, five_turns_lambda)
         write_tactic_jsonl(conv_id, tactic, victory, task, jailbreak, explore, calls, random_line, old_conv_id)
 
-        # victory = True
+        victory = True
 
-        # if victory:
-        #   print("EVOLVING SUCCESSFUL STRATEGY!\n---------------------------------------\n")
-        #   evlolve_tactic(history_path, conversations_history, tactic, victory, api_used, model_used, config_path, task, pdf_context, jailbreak)
+        if victory and setup.get_set_evolution_mode() == '1':
+            print("EVOLVING SUCCESSFUL STRATEGY!\n---------------------------------------\n")
+            evlolve_tactic(history_path, conversations_history, tactic, victory, api_used, model_used, config_path, task, pdf_context, jailbreak)
 
-        # elif close:
-        #   print("EVOLVING CLOSE STRATEGY!\n---------------------------------------\n")
-        #   evlolve_tactic(history_path, conversations_history, tactic, victory, api_used, model_used, config_path, task, pdf_context, jailbreak, close)
+        elif close and setup.get_set_evolution_mode() == '1':
+            print("EVOLVING CLOSE STRATEGY!\n---------------------------------------\n")
+            evlolve_tactic(history_path, conversations_history, tactic, victory, api_used, model_used, config_path, task, pdf_context, jailbreak, close)
 
         run += 1
 

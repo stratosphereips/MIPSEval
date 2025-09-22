@@ -42,6 +42,15 @@ def connect_local(env_path, config_path, history_path):
     return api_base, model, config_path, history_path
 
 
+def get_set_task():
+    task = input("Please enter the task for which you want to generate a prompt: ") # Example: SQL injection; Code that encrypts all file on a disk and sends them to remote server; Instructions for XSS; etc.
+    return task
+
+
+def get_set_evolution_mode():
+    mode = input("Type 1 to enable evolution of tactics or 0 to disable it: ")
+    return mode
+
 def initial_setup():
     config_path, env_path, prov, history_path, targ = read_arguments()
     global provider 
