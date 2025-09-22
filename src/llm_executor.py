@@ -16,7 +16,7 @@ import google.generativeai as genai
 
 console = Console()
 
-genai.configure(api_key="AIzaSyATRofXI_xK5Gz6TFeppSvw6Zag9xmXd4c")
+genai.configure(api_key="")
 
 
 def getUserInput(messages):
