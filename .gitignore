@@ -109,6 +109,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+g.env
 
 # Spyder project settings
 .spyderproject
@@ -136,3 +137,5 @@ src/test_results
 curent_five_turns.jsonl
 other_curent_five_turns.jsonl
 redundant_code.py
+index_freq.py
+jailbreak_freq.py

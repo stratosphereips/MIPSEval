@@ -11,10 +11,15 @@ from openai import OpenAI
 import os
 import random
 import re
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
 import setup
 import string
 import sys
 import yaml
+
+console = Console()
 
 
 def check_openai():
@@ -337,7 +342,7 @@ def get_step_for_evaluator(conversation_context, jsonl_path, turn, messages, lin
                     
             message_for_evaluator = msg
 
-            print(f"\n---\n{message_for_evaluator}\n")
+            console.print(Panel.fit(f"\n---\n[bold yellow]Strategy[/bold yellow]\n{message_for_evaluator}\n"))
 
         except Exception as e:
             print("There was a little inchident. Please try again!\n")
@@ -440,7 +445,7 @@ def evlolve_tactic(history_path, conversations_history, initial_tactic, victory,
                 plan_text = get_step_explanation(plan, turn)
                 changes.append(change)
 
-                print(f"{plan_text}\n---\n")
+                console.print(Panel.fit(f"[bold yellow]Step[/bold yellow]\n{plan_text}\n---\n"))
 
                 lambda_turn, one_turn = llm_executor.send_request(api_used, model_used, config_path, history_path, s_task, s_jailbreak, s_pdf_context, plan_text, step, session_id, turn, "gpt-4o-mini")
 
@@ -519,7 +524,7 @@ def engage_llm(api_used, model_used, config_path, history_path):
             # tactic.append({"step": step})
 
             plan_text = get_step_explanation(plan, turn)
-            print(f"{plan_text}\n---\n")
+            console.print(Panel.fit(f"[bold yellow]Step[/bold yellow]\n{plan_text}\n---\n"))
 
             lambda_turn, one_turn = llm_executor.send_request(api_used, model_used, config_path, history_path, task, jailbreak, pdf_context, plan_text, step, session_id, turn, "gpt-4o-mini")
 

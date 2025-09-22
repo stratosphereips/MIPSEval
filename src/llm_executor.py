@@ -6,11 +6,15 @@ from openai import OpenAI
 import os
 import random
 import requests
+from rich.console import Console
+from rich.panel import Panel
 import setup
 import string
 import sys
 import yaml
 import google.generativeai as genai
+
+console = Console()
 
 genai.configure(api_key="AIzaSyATRofXI_xK5Gz6TFeppSvw6Zag9xmXd4c")
 
@@ -172,7 +176,7 @@ def send_request(api_used, model_used, config_path, history_path, task, jailbrea
         message_for_evaluator = {"role": 'assistant', "content": msg}
         message_for_lambda = msg
 
-        print(f"\nR: {message_for_lambda}\n")
+        console.print(Panel.fit(f"\n[bold red]REQUEST: [/bold red]{message_for_lambda}\n"))
         
         other_messages.append({"role": "user", "content": message_for_lambda})
 
@@ -184,7 +188,7 @@ def send_request(api_used, model_used, config_path, history_path, task, jailbrea
             lambda_output = call_openai_api(other_messages, target)
         elif setup.target == "local":
             lambda_output = call_gemini_api(other_messages, target)
-        print(f"A: {lambda_output}\n")
+        console.print(Panel.fit(f"\n[bold blue]ANSWER: [/bold blue]{lambda_output}\n"))
 
         messages.append({"role": "user", "content": lambda_output})
         other_messages.append({"role": "assistant", "content": lambda_output})
