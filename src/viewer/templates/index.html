@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>MIPSEval Logs</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --muted:#9aa4b2; --accent:#60a5fa;
+      --good:#16a34a; --bad:#ef4444; --panel:#071022;
+    }
+    body{font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto; background:linear-gradient(180deg,#071021 0%, #081328 100%); color:#e6eef6; margin:0; padding:24px;}
+    h1{margin:0 0 12px 0; font-weight:600;}
+    .toolbar{display:flex; gap:10px; align-items:center; margin-bottom:14px;}
+    .btn{background:transparent; border:1px solid rgba(255,255,255,0.06); padding:8px 12px; color:var(--accent); border-radius:8px; cursor:pointer;}
+    .search{padding:8px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.04); background:rgba(255,255,255,0.02); color:inherit;}
+    .container{max-width:1000px; margin:auto;}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:12px; border-radius:10px; margin-bottom:12px; border:1px solid rgba(255,255,255,0.03);}
+    .meta{font-size:13px; color:var(--muted); margin-bottom:6px;}
+    .plan{white-space:pre-wrap; font-family:monospace; font-size:15px; background:rgba(255,255,255,0.02); padding:10px; border-radius:6px; margin-top:6px;}
+    details{background:transparent; padding:6px 8px; border-radius:6px;}
+    summary{cursor:pointer; font-weight:600; outline:none;}
+    .pair{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;}
+    pre{white-space:pre-wrap; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, monospace; padding:8px; border-radius:6px; background:rgba(255,255,255,0.02); margin:0; font-size:15px;}
+    .tag{display:inline-block; font-size:14px; padding:4px 8px; border-radius:999px; background:rgba(255,255,255,0.03); color:var(--muted);}
+    .small{font-size:12px; color:var(--muted);}
+    .status-true{color:var(--good); font-weight:700;}
+    .status-false{color:var(--bad); font-weight:700;}
+    .hr{height:1px; background:linear-gradient(90deg,transparent,#ffffff12,transparent); margin:12px 0; border-radius:2px;}
+    .notice{font-size:15px;color:var(--muted); margin-bottom:10px;}
+  </style>
+</head>
+<body>
+  <h1>MIPSEval History</h1>
+  <div class="toolbar">
+    <input id="q" class="search" placeholder="Search requests/responses..." />
+    <button id="refresh" class="btn">Refresh</button>
+    <div style="flex:1"></div>
+    <span class="small">Source: <span id="source">auto-detect</span></span>
+  </div>
+
+  <div class="container">
+    <div id="notice" class="notice">Loading logs… (tries <code>/logs</code>, then falls back to <code>/api/strategies</code> + <code>/api/conversations</code>)</div>
+    <div id="list"></div>
+  </div>
+
+<script>
+/**
+ * Robust fetcher:
+ * 1) Try /logs -> { entries: [...] }
+ * 2) If 404 or fail -> try /api/strategies and /api/conversations and merge
+ */
+async function fetchLogs(){
+  let strategies = [];
+  let conversations = [];
+  try {
+    const rs = await fetch("/api/strategies");
+    if (rs.ok) strategies = await rs.json();
+    else console.warn("/api/strategies returned", rs.status);
+  } catch (e) { console.warn("fetch /api/strategies failed:", e); }
+
+  try {
+    const rc = await fetch("/api/conversations");
+    if (rc.ok) conversations = await rc.json();
+    else console.warn("/api/conversations returned", rc.status);
+  } catch (e) { console.warn("fetch /api/conversations failed:", e); }
+
+  // if both empty, return empty with helpful notice
+  if ((!strategies || strategies.length === 0) && (!conversations || conversations.length === 0)){
+    document.getElementById('source').innerText = "none (no endpoints found)";
+    return [];
+  }
+
+  document.getElementById('source').innerText = "/api/strategies + /api/conversations";
+
+  // Build merged array matched by conv_id
+  const byConv = {};
+  // Conversations: each line is expected to be an object possibly with conv_id and messages
+  (conversations || []).forEach((c, idx) => {
+    const id = (c && c.conv_id !== undefined) ? String(c.conv_id) : `conv_${idx}`;
+    if (!byConv[id]) byConv[id] = { conv_id: id, strategies: [], messages: [] };
+    // If object itself contains messages array, use it; else try to see common structure
+    if (c.messages) byConv[id].messages = c.messages;
+    if (c.won !== undefined) byConv[id].won = c.won;
+    else {
+      // if the conversation JSONL is raw messages or another shape, push it into messages
+      byConv[id].messages = byConv[id].messages.concat(c.messages || (c.messages === undefined ? [c] : []));
+    }
+  });
+
+  (strategies || []).forEach((s, idx) => {
+    // strategies file may contain objects like { strategies: [...], conv_id: 15 }
+    const id = (s && s.conv_id !== undefined) ? String(s.conv_id) : (s && s.id !== undefined ? String(s.id) : `strategy_${idx}`);
+    if (!byConv[id]) byConv[id] = { conv_id: id, strategies: [], messages: [] };
+
+    // If s has .strategies array, use that; otherwise push s as a single strategy-like object
+    if (Array.isArray(s.strategies)) {
+      // each element might be { plan: "..." } or similar
+      s.strategies.forEach(st => byConv[id].strategies.push(st));
+    } else if (s.strategies) {
+      // if strategies is a truthy non-array, just push it
+      byConv[id].strategies.push(s.strategies);
+    } else {
+      // maybe the JSONL line itself is the strategy item
+      // normalize: if s has 'plan', wrap; else push s
+      if (s.plan) byConv[id].strategies.push(s);
+      else byConv[id].strategies.push(s);
+    }
+  });
+
+  // Convert to array preserving conv_id keys
+  return Object.keys(byConv).map(k => byConv[k]);
+}
+
+function escapeHtml(s){
+  if(!s && s!==0) return '';
+  return String(s).replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]; });
+}
+
+function renderEntries(entries, query="") {
+  const out = [];
+
+  let victories = 0;
+  let defeats = 0;
+  (entries || []).forEach(e => {
+    if (e.won === true) victories++;
+    else if (e.won === false) defeats++;
+  });
+
+  // Insert stats at the top
+  const statHtml = `<div class="card" style="margin-bottom:12px;">
+      <div class="small">Total Victories: <span style="color:var(--good); font-weight:700;">${victories}</span> • Total Defeats: <span style="color:var(--bad); font-weight:700;">${defeats}</span></div>
+    </div>`;
+  out.push(statHtml); // <-- Push the stats as the first element
+
+  if (!entries || entries.length === 0){
+    document.getElementById('list').innerHTML = "<div class='card'>No logs found.</div>";
+    return;
+  }
+
+  entries.forEach(e => {
+    if (query && !JSON.stringify(e).toLowerCase().includes(query)) return;
+
+    // Victory/Defeat badge
+    const victoryHtml = e.won === true ? '<span class="status-true">✅ Victory</span>' :
+                        e.won === false ? '<span class="status-false">❌ Defeat</span>' : '';
+
+    let html = `<details style="margin-bottom:8px;">
+      <summary style="font-weight:700; cursor:pointer;">
+        Conversation ${escapeHtml(e.conv_id || "")} ${victoryHtml}
+      </summary>`;
+
+    // Task & Jailbreak from first message
+    const firstMsg = e.messages && e.messages.length ? e.messages[0] : {};
+    if (firstMsg.task || firstMsg.jailbreak) {
+      html += `<div class="card" style="margin-top:6px; margin-left:12px;">
+        ${firstMsg.task ? `<div class="small">Task: ${escapeHtml(firstMsg.task)}</div>` : ''}
+        ${firstMsg.jailbreak ? `<div class="small">Jailbreak: ${escapeHtml(firstMsg.jailbreak)}</div>` : ''}
+      </div>`;
+    }
+
+    // Render strategies
+    (e.strategies || []).forEach((s, idx) => {
+      const plan = s.plan || (typeof s === "string" ? s : JSON.stringify(s, null, 2));
+      html += `<div class="card" style="margin-top:8px; margin-left:12px;">
+        <div class="small">Strategy ${idx+1}</div>
+        <div class="plan">${escapeHtml(plan)}</div>
+      </div>`;
+    });
+
+    // Render messages
+    (e.messages || []).forEach(m => {
+      const req = m.request || "";
+      const res = m.response || "";
+      const tags = [];
+      if(m.is_req_malicious !== undefined) tags.push(`<span class="tag">${m.is_req_malicious ? 'req:malicious' : 'req:safe'}</span>`);
+      if(m.is_res_safe !== undefined) tags.push(`<span class="tag">${m.is_res_safe ? 'res:safe' : 'res:unsafe'}</span>`);
+      const success = m.success ? `<span class="status-true">SUCCESS</span>` : `<span class="status-false">FAIL</span>`;
+
+      html += `<details style="margin-left:24px; margin-top:4px;">
+        <summary>${escapeHtml(req).slice(0,120) || '(empty request)'} <span style="margin-left:8px">${tags.join(' ')} ${success}</span></summary>
+        <div class="pair">
+          <div>
+            <div class="small">Request (R)</div>
+            <pre>${escapeHtml(req)}</pre>
+          </div>
+          <div>
+            <div class="small">Response (A)</div>
+            <pre>${escapeHtml(res)}</pre>
+          </div>
+        </div>
+        <div class="hr"></div>
+        <div class="small">Task: ${escapeHtml(m.task || '')} • Jailbreak: ${escapeHtml(m.jailbreak || '')}</div>
+      </details>`;
+    });
+
+    html += `</details>`;
+    out.push(html);
+  });
+
+  document.getElementById('list').innerHTML = out.join("\n");
+}
+
+(async function init(){
+  const qInput = document.getElementById('q');
+  const refresh = document.getElementById('refresh');
+
+  async function loadAndRender(){
+    document.getElementById('notice').innerText = "Loading logs…";
+    const entries = await fetchLogs();
+    document.getElementById('notice').innerText = "";
+    renderEntries(entries, qInput.value.trim().toLowerCase());
+    // keep entries in closure for filter
+    window._llm_entries = entries;
+  }
+
+  await loadAndRender();
+
+  refresh.addEventListener('click', loadAndRender);
+
+  qInput.addEventListener('input', ()=>{
+    const q = qInput.value.trim().toLowerCase();
+    const entries = window._llm_entries || [];
+    renderEntries(entries, q);
+  });
+})();
+</script>
+</body>
+</html>
