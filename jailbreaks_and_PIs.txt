@@ -15,4 +15,3 @@ Opposite Intent
 Dev_Mode
 Evil_Sytem
 Inverted Instruction
-Base64 Jailbreak
