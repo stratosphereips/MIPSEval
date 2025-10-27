@@ -139,3 +139,8 @@ other_curent_five_turns.jsonl
 redundant_code.py
 index_freq.py
 jailbreak_freq.py
+task_jailbreak.py
+task_jailbreak_evolve.py
+*.csv
+extraction_scripts
+pf-goat-test

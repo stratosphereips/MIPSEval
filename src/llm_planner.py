@@ -538,7 +538,7 @@ def engage_llm(api_used, model_used, config_path, history_path):
         victory, close = write_to_jsonl(history_path, conv_id, five_turns, five_turns_lambda)
         write_tactic_jsonl(conv_id, tactic, victory, task, jailbreak, explore, calls, random_line, old_conv_id)
 
-        victory = True
+        # victory = True
 
         if victory and evol_mode == '1':
             print("EVOLVING SUCCESSFUL STRATEGY!\n---------------------------------------\n")
