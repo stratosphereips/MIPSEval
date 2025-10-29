@@ -78,7 +78,7 @@ def call_openai_api(messages, llm_used):
 def call_local_api(messages, model_used):
     client = OpenAI(
         api_key="ollama",  # This is the default and can be omitted
-        base_url="http://localhost:11434/v1"  # URL for the local model API to be used as target LLM
+        base_url="http://localhost:11434/v1" # URL for the local model API to be used as target LLM
     )
     try:
         response = client.chat.completions.create(
@@ -187,7 +187,7 @@ def send_request(api_used, model_used, config_path, history_path, task, jailbrea
         if setup.target == "openai":
             lambda_output = call_openai_api(other_messages, target)
         elif setup.target == "local":
-            lambda_output = call_gemini_api(other_messages, target)
+            lambda_output = call_local_api(other_messages, target)
         console.print(Panel.fit(f"\n[bold blue]ANSWER: [/bold blue]{lambda_output}\n"))
 
         messages.append({"role": "user", "content": lambda_output})
