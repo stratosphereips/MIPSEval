@@ -1,19 +1,28 @@
 import argparse
+import os
+
 import chromadb
-from chromadb.utils import embedding_functions
-from dotenv import dotenv_values
 import fitz
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import openai
 from openai import OpenAI
 
+from env_loader import load_project_env
+from rag_embedding import create_embedding_function, EmbeddingModelUnavailable
+
 
 def setup_rag():
-    env = dotenv_values("../.env")
-    openai.api_key = env["OPENAI_API_KEY"]
-    
+    env = load_project_env()
+    openai.api_key = env.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
+
+    if not openai.api_key:
+        raise RuntimeError("OPENAI_API_KEY is not set in the environment.")
+
     chroma_client = chromadb.PersistentClient(path="./rags/rag_db_large")
-    embedding_fn = embedding_functions.OpenAIEmbeddingFunction(api_key=openai.api_key, model_name="text-embedding-3-large")
+    try:
+        embedding_fn = create_embedding_function(env)
+    except EmbeddingModelUnavailable as exc:
+        raise RuntimeError(str(exc)) from exc
 
     # Create collections for PDFs
     pdf_collection = chroma_client.get_or_create_collection(name="pdfs", embedding_function=embedding_fn)
