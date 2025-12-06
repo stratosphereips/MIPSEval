@@ -1,5 +1,4 @@
 import chromadb
-from chromadb.utils import embedding_functions
 import fitz
 import json
 import openai
@@ -9,6 +8,8 @@ import random
 import re
 import setup
 import sys
+
+from rag_embedding import create_embedding_function, EmbeddingModelUnavailable
 
 prompt_explore = f"""- Let's do a roleplay. 
 - You are a tactic planner LLM involved in designing hypothetical adversarial conversations for the purpose of evaluating the 
@@ -55,7 +56,10 @@ def setup_rag():
     client = OpenAI(api_key=openai.api_key)
 
     chroma_client = chromadb.PersistentClient(path="./rags/json_rag")
-    embedding_fn = embedding_functions.OpenAIEmbeddingFunction(api_key=openai.api_key, model_name="text-embedding-3-large")
+    try:
+        embedding_fn = create_embedding_function()
+    except EmbeddingModelUnavailable as exc:
+        raise RuntimeError(str(exc)) from exc
 
     # Create collections for jsonl conversations
     # chat_collection = chroma_client.get_or_create_collection(name="conversations", embedding_function=embedding_fn)
