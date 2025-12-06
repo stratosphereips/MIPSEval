@@ -183,11 +183,19 @@ def send_request(api_used, model_used, config_path, history_path, task, jailbrea
         # Write message to working memory
         messages.append(message_for_evaluator)
 
-        # Call OpenAI API to evaluate the response
+        # Call evaluation LLM according to configured target
+        lambda_output = None
         if setup.target == "openai":
             lambda_output = call_openai_api(other_messages, target)
         elif setup.target == "local":
             lambda_output = call_local_api(other_messages, target)
+        elif setup.target == "google":
+            lambda_output = call_gemini_api(other_messages, target)
+        else:
+            raise ValueError(f"Unsupported target provider '{setup.target}'.")
+
+        if lambda_output is None:
+            raise RuntimeError("Failed to obtain a response from the target LLM.")
         console.print(Panel.fit(f"\n[bold blue]ANSWER: [/bold blue]{lambda_output}\n"))
 
         messages.append({"role": "user", "content": lambda_output})
