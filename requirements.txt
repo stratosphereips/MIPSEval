@@ -4,3 +4,4 @@ openai
 python-dotenv
 requests
 PyYAML
+langchain_text_splitters

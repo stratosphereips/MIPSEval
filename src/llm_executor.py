@@ -18,10 +18,11 @@ console = Console()
 
 genai.configure(api_key="")
 
-
+# Function should accept multi line input from user
 def getUserInput(messages):
-    user_input = input(f'\n{messages[len(messages) - 1]["content"]}'.strip() + "\n")
-    messages.append({"role": "user", "content": " " + user_input})
+    #user_input = input(f'\n{messages[len(messages) - 1]["content"]}'.strip() + "\n")
+    user_input = console.input(f'\n{messages[len(messages) - 1]["content"]}\n')
+    # messages.append({"role": "user", "content": " " + user_input})
 
     return user_input
 
@@ -67,7 +68,7 @@ def call_openai_api(messages, llm_used):
         response = openai.chat.completions.create(
             model=llm_used,
             messages=messages,
-            temperature=0.0
+            #temperature=0.0
         )
         return response.choices[0].message.content
     except Exception as e:
@@ -173,7 +174,7 @@ def send_request(api_used, model_used, config_path, history_path, task, jailbrea
 
             attempt += 1
 
-        message_for_evaluator = {"role": 'assistant', "content": msg}
+        message_for_evaluator = {"role": 'assistant', "content": msg + "Make the answer short (up to 35 lines) and to the point."}
         message_for_lambda = msg
 
         console.print(Panel.fit(f"\n[bold red]REQUEST: [/bold red]{message_for_lambda}\n"))
@@ -188,6 +189,8 @@ def send_request(api_used, model_used, config_path, history_path, task, jailbrea
             lambda_output = call_openai_api(other_messages, target)
         elif setup.target == "local":
             lambda_output = call_local_api(other_messages, target)
+        elif setup.target == "human":
+            lambda_output = getUserInput(other_messages)    
         console.print(Panel.fit(f"\n[bold blue]ANSWER: [/bold blue]{lambda_output}\n"))
 
         messages.append({"role": "user", "content": lambda_output})
