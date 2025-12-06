@@ -1,5 +1,4 @@
 import chromadb
-from chromadb.utils import embedding_functions
 from collections import deque
 import fitz
 import json
@@ -19,6 +18,8 @@ import string
 import sys
 import yaml
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from rag_embedding import create_embedding_function, EmbeddingModelUnavailable
+
 from rag_embedding import create_embedding_function, EmbeddingModelUnavailable
 
 console = Console()
