@@ -1,4 +1,5 @@
 import chromadb
+from chromadb.utils import embedding_functions
 from collections import deque
 import fitz
 import json
@@ -17,7 +18,7 @@ import setup
 import string
 import sys
 import yaml
-
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from rag_embedding import create_embedding_function, EmbeddingModelUnavailable
 
 console = Console()
@@ -121,17 +122,47 @@ def query_rag_system(chat_collection, pdf_collection, json_collection, user_quer
 
 # --------------- JSONL CONVERSATION PROCESSING ----------------
 def process_jsonl_and_pdf(jsonl_path, chat_collection, pdf_collection, json_collection, client, jailbreak=None, pdf_context=None, explore=1):
+    MAX_CHARS_PER_CHUNK = 20000 
+    OVERLAP_CHARS = 2000
+
+    # Initialize the text splitter
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=MAX_CHARS_PER_CHUNK,
+        chunk_overlap=OVERLAP_CHARS,
+        length_function=len,
+        separators=["\n\n", "\n", " ", ""], # Standard separators for good text splitting
+    )
+    
     # Load JSONL conversation history and store in ChromaDB.
     if explore:
         with open(jsonl_path, "r") as file:
             for line in file:
                 record = json.loads(line)
-                chat_text = json.dumps(record)
-                chat_collection.upsert( # upsert adds new lines but also updates existing ones if there were some changes 
-                    ids=[f"{record['conv_id']}"],
-                    documents=[chat_text],
-                    metadatas=[{"conv_id": record["conv_id"]}]
-                )
+                # 1. Convert the entire record to a string (the document)
+                chat_text = json.dumps(record, indent=2) 
+                
+                # 2. Split the document into smaller chunks
+                # split_text returns a list of smaller strings (chunks)
+                chunks = text_splitter.split_text(chat_text)
+                
+                # 3. Iterate through the chunks and upsert each one individually
+                for i, chunk in enumerate(chunks):
+                    # Create a unique ID for each chunk based on the original conv_id and the chunk index
+                    chunk_id = f"{record['conv_id']}_chunk_{i}"
+                    
+                    # Create metadata for the chunk, keeping the original conv_id
+                    chunk_metadata = {
+                        "conv_id": record["conv_id"],
+                        "chunk_index": i,
+                        "is_chunked": len(chunks) > 1 # Helpful flag to know if it was split
+                    }
+                    
+                    # Upsert the individual chunk
+                    chat_collection.upsert(
+                        ids=[chunk_id],
+                        documents=[chunk], # Insert the smaller chunk of text
+                        metadatas=[chunk_metadata]
+                    )
         print(f"Stored conversation history from {jsonl_path}.")
 
     if explore:
@@ -230,12 +261,12 @@ def write_to_jsonl(filepath, conv_id, messages, five_turns_lambda, evolving = Fa
 
 
 def write_tactic_jsonl(conv_id, messages, victory, task, jailbreak, explore, calls, line=None, old_conv_id=None):
-    with open("./test_strategies_history.jsonl", "a+") as f:
+    with open("./test_strategies_history_full.jsonl", "a+") as f:
         entry = {"strategies": messages, "conv_id": conv_id}
         f.write(json.dumps(entry) + "\n")
 
     if victory or not explore:
-        path = "./test_strategies_victories.jsonl"
+        path = "./test_strategies_victories_full.jsonl"
         if not os.path.exists(path):
             with open(path, "w") as f:
                 pass
@@ -427,13 +458,13 @@ def evlolve_tactic(history_path, conversations_history, initial_tactic, victory,
 
         changes = []
         
-        for _ in range(5):  # Try 5 evolutions from this tactic
+        for _ in range(10):  # Try 5 evolutions from this tactic
             session_id, conv_id, five_turns, five_turns_lambda, turn, plan, step, messages, empty_tactic, empty_conversations_history, task, pdf_context, jailbreak = prepare_to_engage(history_path, s_jailbreak, s_task, s_pdf_context)
 
-            turn_evolve = 1
+            turn = 1
             current_tactic = tactic.copy()
 
-            while turn_evolve < 6:
+            while turn < 6:
                 try:
                     new_plan, step, messages, change = get_the_next_step(five_turns, history_path, conv_id, five_turns_lambda, 1, conversations_history, messages, turn, task, jailbreak, True, close, current_tactic, changes)
                 except Exception as e:
@@ -451,34 +482,35 @@ def evlolve_tactic(history_path, conversations_history, initial_tactic, victory,
 
                 console.print(Panel.fit(f"[bold yellow]Step[/bold yellow]\n{plan_text}\n---\n"))
 
-                lambda_turn, one_turn = llm_executor.send_request(api_used, model_used, config_path, history_path, s_task, s_jailbreak, s_pdf_context, plan_text, step, session_id, turn, "gpt-4o")
+                lambda_turn, one_turn = llm_executor.send_request(api_used, model_used, config_path, history_path, s_task, s_jailbreak, s_pdf_context, plan_text, step, session_id, turn, "gpt-4o-mini")
 
                 five_turns_lambda.append(lambda_turn)
                 five_turns.append(one_turn)
 
                 messages.append({"role": "user", "content": json.dumps(one_turn)})
 
-                turn_evolve += 1
+                turn += 1
 
             success, close = write_to_jsonl(history_path, conv_id, five_turns, five_turns_lambda, True)
-            write_tactic_jsonl(conv_id, current_tactic, success, task, jailbreak, 1,0)
+            write_tactic_jsonl(conv_id, current_tactic, success, task, jailbreak, 1, 0)
 
             if success:
                 to_explore.append((current_tactic, depth + 1))   
+                break
     
         count_evolve += 1
     return
-
+# TODO: Weights to winning jailbreaks
 
 def engage_llm(api_used, model_used, config_path, history_path):
     global run
-    run = 0  # (task index - 1) * 18 + (jailbreak index) 
+    run = 1  # (task index - 1) * 18 + (jailbreak index) 
 
     task_mode = setup.get_set_task_mode()
     evol_mode = setup.get_set_evolution_mode()
 
     #Outer loop measures the number of conversations
-    while run < 5:
+    while run < 10:
 
         jailbreak = None
         task = None
@@ -493,11 +525,11 @@ def engage_llm(api_used, model_used, config_path, history_path):
         explore = explore_exploit_generator(history_path, len(lines))
 
         if not explore:
-            with open("./test_victorious_strategies.jsonl", "r") as f:
+            with open("./test_strategies_victories_full.jsonl", "r") as f:
                 lines = [json.loads(line) for line in f]
 
             # Choose a random strategy object from the file
-            random_line = random.choice(lines) # lines[run] # random.choice(lines)
+            random_line = lines[run] # random.choice(lines) # lines[run] # random.choice(lines)
             jailbreak = random_line['jailbreak']
             task = random_line['task']
             calls = random_line['calls']
@@ -505,6 +537,7 @@ def engage_llm(api_used, model_used, config_path, history_path):
             # print(f"\n{random_line}\n")
 
             session_id, conv_id, five_turns, five_turns_lambda, turn, plan, step, messages, tactic, conversations_history, task, pdf_context, jailbreak = prepare_to_engage(history_path, jailbreak, task, None)
+            
             # new_plan, step, messages, change = get_the_next_step(five_turns, history_path, conv_id, five_turns_lambda, explore, conversations_history, messages, turn, task, jailbreak, False, False, None, [], random_line)
             # tactic.append({"plan": new_plan}) # Remove this and previous line after experiment
 
@@ -532,7 +565,7 @@ def engage_llm(api_used, model_used, config_path, history_path):
             plan_text = get_step_explanation(plan, turn)
             console.print(Panel.fit(f"[bold yellow]Step[/bold yellow]\n{plan_text}\n---\n"))
 
-            lambda_turn, one_turn = llm_executor.send_request(api_used, model_used, config_path, history_path, task, jailbreak, pdf_context, plan_text, step, session_id, turn, "gpt-4o-mini")
+            lambda_turn, one_turn = llm_executor.send_request(api_used, model_used, config_path, history_path, task, jailbreak, pdf_context, plan_text, step, session_id, turn, "gpt-5-mini")
 
             five_turns_lambda.append(lambda_turn)
             five_turns.append(one_turn)
@@ -544,14 +577,15 @@ def engage_llm(api_used, model_used, config_path, history_path):
         victory, close = write_to_jsonl(history_path, conv_id, five_turns, five_turns_lambda)
         write_tactic_jsonl(conv_id, tactic, victory, task, jailbreak, explore, calls, random_line, old_conv_id)
 
-        # victory = True
+        # victory = False
+        close = True
         
         if victory and evol_mode == '1':
             print("EVOLVING SUCCESSFUL STRATEGY!\n---------------------------------------\n")
             evlolve_tactic(history_path, conversations_history, tactic, victory, api_used, model_used, config_path, task, pdf_context, jailbreak)
 
         elif close and evol_mode == '1':
-            print("EVOLVING CLOSE STRATEGY!\n---------------------------------------\n")
+            print("EVOLVING FAILING STRATEGY!\n---------------------------------------\n")
             evlolve_tactic(history_path, conversations_history, tactic, victory, api_used, model_used, config_path, task, pdf_context, jailbreak, close)
 
         run += 1
