@@ -1,5 +1,4 @@
 import chromadb
-from chromadb.utils import embedding_functions
 from collections import deque
 import fitz
 import json
@@ -18,6 +17,8 @@ import setup
 import string
 import sys
 import yaml
+
+from rag_embedding import create_embedding_function, EmbeddingModelUnavailable
 
 console = Console()
 
@@ -57,7 +58,10 @@ def setup_rag(explore=1):
     client = OpenAI(api_key=openai.api_key)
 
     chroma_client = chromadb.PersistentClient(path="./rags/json_rag")
-    embedding_fn = embedding_functions.OpenAIEmbeddingFunction(api_key=openai.api_key, model_name="text-embedding-3-large")
+    try:
+        embedding_fn = create_embedding_function()
+    except EmbeddingModelUnavailable as exc:
+        raise RuntimeError(str(exc)) from exc
 
     chat_collection = None
     pdf_collection = None
