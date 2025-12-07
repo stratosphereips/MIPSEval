@@ -4,9 +4,6 @@ openai
 python-dotenv
 requests
 PyYAML
-<<<<<<< HEAD
 google-generativeai
-langchain_text_splitters
-=======
-langchain_text_splittersgoogle-generativeai
->>>>>>> d7ffb4d (Add google-generativeai to requirements for enhanced functionality)
+langchain-text-splitters
+google-generativeai
