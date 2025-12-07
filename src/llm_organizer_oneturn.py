@@ -188,8 +188,8 @@ def get_context_for_evaluator(jsonl_path, explore=1, ongoing=None, plan=None):
 
     #    print(f"{message_for_evaluator}\n")
 
-    #except:
-    #    print("There was a little inchident. Please try again!")
+    #except KeyboardInterrupt:
+    #    print("Execution interrupted. Please try again!")
     #    sys.exit(1)
 
 
