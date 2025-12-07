@@ -381,7 +381,7 @@ def get_step_for_evaluator(conversation_context, jsonl_path, turn, messages, lin
             console.print(Panel.fit(f"\n---\n[bold yellow]Strategy[/bold yellow]\n{message_for_evaluator}\n"))
 
         except Exception as e:
-            print("There was a little inchident. Please try again!\n")
+            print("Execution interrupted. Please try again!\n")
             print(e)
             sys.exit(1)
     else:
