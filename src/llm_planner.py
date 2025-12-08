@@ -1,5 +1,4 @@
 import chromadb
-from chromadb.utils import embedding_functions
 from collections import deque
 import fitz
 import json
@@ -19,6 +18,9 @@ import string
 import sys
 import yaml
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from rag_embedding import create_embedding_function, EmbeddingModelUnavailable
+
+from rag_embedding import create_embedding_function, EmbeddingModelUnavailable
 
 console = Console()
 
@@ -58,7 +60,10 @@ def setup_rag(explore=1):
     client = OpenAI(api_key=openai.api_key)
 
     chroma_client = chromadb.PersistentClient(path="./rags/json_rag")
-    embedding_fn = embedding_functions.OpenAIEmbeddingFunction(api_key=openai.api_key, model_name="text-embedding-3-large")
+    try:
+        embedding_fn = create_embedding_function()
+    except EmbeddingModelUnavailable as exc:
+        raise RuntimeError(str(exc)) from exc
 
     chat_collection = None
     pdf_collection = None
@@ -376,7 +381,7 @@ def get_step_for_evaluator(conversation_context, jsonl_path, turn, messages, lin
             console.print(Panel.fit(f"\n---\n[bold yellow]Strategy[/bold yellow]\n{message_for_evaluator}\n"))
 
         except Exception as e:
-            print("There was a little inchident. Please try again!\n")
+            print("Execution interrupted. Please try again!\n")
             print(e)
             sys.exit(1)
     else:

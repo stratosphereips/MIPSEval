@@ -1,19 +1,27 @@
 import json
+import os
+
 import openai
 import chromadb
-from chromadb.utils import embedding_functions
-from dotenv import dotenv_values
+
+from env_loader import load_project_env
+from rag_embedding import create_embedding_function, EmbeddingModelUnavailable
 
 def setup_rag():
-    # Load API key from .env
-    env = dotenv_values("../.env")
-    openai.api_key = env["OPENAI_API_KEY"]
+    # Load API key from .env (searching from current working directory upward)
+    env = load_project_env()
+    openai.api_key = env.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
+
+    if not openai.api_key:
+        raise RuntimeError("OPENAI_API_KEY is not set in the environment.")
 
     # Initialize ChromaDB with persistent storage
     chroma_client = chromadb.PersistentClient(path="./rags/json_rag")
 
-    # Set up OpenAI embedding function
-    embedding_fn = embedding_functions.OpenAIEmbeddingFunction(api_key=openai.api_key, model_name="text-embedding-3-large")
+    try:
+        embedding_fn = create_embedding_function(env)
+    except EmbeddingModelUnavailable as exc:
+        raise RuntimeError(str(exc)) from exc
 
     # Create collection
     attack_collection = chroma_client.get_or_create_collection(name="attack_methods", embedding_function=embedding_fn)

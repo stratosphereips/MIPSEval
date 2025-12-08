@@ -1,4 +1,6 @@
 import argparse
+import os
+
 from dotenv import dotenv_values
 import openai
 
@@ -30,7 +32,14 @@ def read_arguments():
 
 def set_key(env_path, config_path, history_path):
     env = dotenv_values(env_path)
-    openai.api_key = env["OPENAI_API_KEY"]
+    for key, value in env.items():
+        if value is not None:
+            os.environ[key] = value
+
+    openai.api_key = env.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
+
+    if not openai.api_key:
+        raise RuntimeError("OPENAI_API_KEY is not set. Check your .env file.")
 
     return openai.api_key, "gpt-4o-mini", config_path, history_path
 
