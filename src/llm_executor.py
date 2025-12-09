@@ -13,14 +13,6 @@ import string
 import sys
 import yaml
 import google.generativeai as genai
-import select
-import termios
-import tty
-import time
-import select
-import termios
-import tty
-import time
 
 console = Console()
 
@@ -31,52 +23,15 @@ def getUserInput(messages):
     prompt = f"\n{messages[-1]['content']}\n".strip()
     console.print("\n" + prompt + "\n")
 
+    # Non-interactive mode (piped input)
     if not sys.stdin.isatty():
         return sys.stdin.read().strip()
 
-    fd = sys.stdin.fileno()
-    old_settings = termios.tcgetattr(fd)
-    chunks = []
-    last_input_time = None
-    newline_seen = False
-    in_bracketed_paste = False
-    start_marker = "\x1b[200~"
-    end_marker = "\x1b[201~"
+    # Interactive: just use normal input()
+    text = sys.stdin.read() if not sys.stdin.seekable() else input()
 
-    try:
-        tty.setcbreak(fd)
-        while True:
-            ready, _, _ = select.select([fd], [], [], 0.1)
-            if ready:
-                data = os.read(fd, 8192).decode(errors="ignore")
-                if not data:
-                    break
-
-                if start_marker in data:
-                    in_bracketed_paste = True
-                    data = data.replace(start_marker, "")
-
-                if end_marker in data:
-                    in_bracketed_paste = False
-                    data = data.replace(end_marker, "")
-
-                chunks.append(data)
-
-                if not in_bracketed_paste and ("\n" in data or "\r" in data):
-                    newline_seen = True
-
-                last_input_time = time.time()
-            else:
-                if (
-                    newline_seen
-                    and not in_bracketed_paste
-                    and last_input_time
-                    and (time.time() - last_input_time) > 0.5
-                ):
-                    break
-        text = "".join(chunks)
-    finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    # Remove bracketed paste markers if present
+    text = text.replace("\x1b[200~", "").replace("\x1b[201~", "")
 
     return text.strip()
 

@@ -20,7 +20,7 @@ import yaml
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from rag_embedding import create_embedding_function, EmbeddingModelUnavailable
 
-from rag_embedding import create_embedding_function, EmbeddingModelUnavailable
+# from rag_embedding import create_embedding_function, EmbeddingModelUnavailable
 
 console = Console()
 
