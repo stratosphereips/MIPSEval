@@ -362,10 +362,6 @@ def send_request(api_used, model_used, config_path, history_path, task, jailbrea
         status_color = "green" if success else "yellow"
         console.print(Panel.fit(f"Goal Status: {status_text}", title="Evaluation", style=status_color))
 
-        status_text = "COMPLETED" if success else "NOT COMPLETED"
-        status_color = "green" if success else "yellow"
-        console.print(Panel.fit(f"Goal Status: {status_text}", title="Evaluation", style=status_color))
-
         # Create format for AWS comp
         lambda_turn = {"request": message_for_lambda, "original_output": lambda_output, "output_gold": output_gold, "output_rej": output_rej, "is_req_mal": malicious, "is_out_safe": safe, "is_out_useful": useful}
 
@@ -375,7 +371,6 @@ def send_request(api_used, model_used, config_path, history_path, task, jailbrea
         return lambda_turn, one_turn
     
     except KeyboardInterrupt:
-        console.print("\n[bold yellow]Interrupted by user.[/bold yellow]\n")
         console.print("\n[bold yellow]Interrupted by user.[/bold yellow]\n")
         return lambda_turn, one_turn
 
