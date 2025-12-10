@@ -13,14 +13,21 @@ import string
 import sys
 import yaml
 import google.generativeai as genai
-import select
-import termios
-import tty
 import time
-import select
-import termios
-import tty
-import time
+
+if os.name != "nt":
+    import select
+    import termios
+    import tty
+else:
+    select = None  # type: ignore
+    termios = None  # type: ignore
+    tty = None  # type: ignore
+
+try:
+    import msvcrt  # type: ignore
+except ImportError:
+    msvcrt = None
 
 console = Console()
 
@@ -32,7 +39,23 @@ def getUserInput(messages):
     console.print("\n" + prompt + "\n")
 
     if not sys.stdin.isatty():
-        return sys.stdin.read().strip()
+        text = sys.stdin.read()
+        console.print(text)
+        return text.strip()
+
+    if os.name == "nt":
+        if msvcrt is None:
+            text = sys.stdin.read()
+            console.print(text)
+            return text.strip()
+        return _read_multiline_windows().strip()
+
+    return _read_multiline_posix().strip()
+
+
+def _read_multiline_posix():
+    if select is None or termios is None or tty is None:
+        raise RuntimeError("POSIX input handling is unavailable on this platform.")
 
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
@@ -46,7 +69,7 @@ def getUserInput(messages):
     try:
         tty.setcbreak(fd)
         while True:
-            ready, _, _ = select.select([fd], [], [], 0.1)
+            ready, _, _ = select.select([fd], [], [], 0.05)
             if ready:
                 data = os.read(fd, 8192).decode(errors="ignore")
                 if not data:
@@ -55,30 +78,68 @@ def getUserInput(messages):
                 if start_marker in data:
                     in_bracketed_paste = True
                     data = data.replace(start_marker, "")
-
                 if end_marker in data:
                     in_bracketed_paste = False
                     data = data.replace(end_marker, "")
 
-                chunks.append(data)
+                if data:
+                    sys.stdout.write(data)
+                    sys.stdout.flush()
+                    chunks.append(data)
 
                 if not in_bracketed_paste and ("\n" in data or "\r" in data):
                     newline_seen = True
 
                 last_input_time = time.time()
             else:
-                if (
-                    newline_seen
-                    and not in_bracketed_paste
-                    and last_input_time
+                timeout_reached = (
+                    last_input_time is not None
                     and (time.time() - last_input_time) > 0.5
-                ):
+                )
+                if not in_bracketed_paste and timeout_reached and (newline_seen or chunks):
                     break
         text = "".join(chunks)
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
-    return text.strip()
+    return text
+
+
+def _read_multiline_windows():
+    if msvcrt is None:
+        raise RuntimeError("Windows input handling requires msvcrt.")
+
+    buffer = []
+    newline_seen = False
+    last_input_time = None
+
+    while True:
+        if msvcrt.kbhit():
+            ch = msvcrt.getwch()
+
+            if ch in ("\x00", "\xe0"):
+                msvcrt.getwch()
+                continue
+
+            if ch == "\r":
+                sys.stdout.write("\n")
+                sys.stdout.flush()
+                buffer.append("\n")
+                newline_seen = True
+            elif ch == "\x03":
+                raise KeyboardInterrupt
+            else:
+                sys.stdout.write(ch)
+                sys.stdout.flush()
+                buffer.append(ch)
+
+            last_input_time = time.time()
+        else:
+            if newline_seen and last_input_time and (time.time() - last_input_time) > 0.5:
+                break
+            time.sleep(0.05)
+
+    return "".join(buffer)
 
 
 def read_config_file(config_path):
